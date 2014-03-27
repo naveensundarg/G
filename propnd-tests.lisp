@@ -84,10 +84,13 @@
   (list () '(iff (and A (not B))
 	     (not (implies A B)))))
 
+
+(defparameter *prop-nd-test-21*  
+  (list () '(or P (not P))))
 (defun range (a b) (loop for i from a to b collect i))
 
 (defparameter *prop-nd-tests* 
-  (let ((total-tests 20))
+  (let ((total-tests 21))
     (mapcar (lambda (n)
 	      (eval 
 	       (read-from-string 
@@ -106,6 +109,7 @@
 		      (1+ count) test-case (if (null (apply #'Prove test-case)) "NO!" (progn (incf passed) "Yes.")))
 	      (incf count) (values))
 	    *prop-nd-tests*)
-    (format t "~% Total Passed ~a out of ~a." passed count)))
+    (format t "~% Total Passed ~a out of ~a." passed count)
+    (force-output t)))
 
 (run-tests)

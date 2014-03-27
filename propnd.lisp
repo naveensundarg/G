@@ -8,6 +8,39 @@
 
 
 
+(defparameter *problem-stack* nil)
+
+(defun make-problem (premises goal) (list premises goal))
+(defun premises (problem) (first problem))
+(defun goal (problem) (second problem))
+
+(defun compress (problem)
+  (let ((premises (first problem))
+	(goal (second problem)))
+    (list (remove-duplicates premises :test #'equalp) goal)))
+
+(defun push-problem (p) (push (compress p) *problem-stack*))
+
+(defun subsumes? (P1 P2)
+  (let ((premises1 (premises P1))
+	(premises2 (premises P2))
+	(goal1 (goal P1))
+	(goal2 (goal P2)))
+    (and (equalp goal1 goal2)
+	 (subsetp (remove-duplicates premises2 :test #'equalp) premises1))))
+
+(defun is-problem-in-stack? (p) (some (complement #'null)
+				      (mapcar (lambda (x)
+						(if (subsumes? x p) t nil))  
+					      *problem-stack* )))
+
+(defun clear-problem-stack () (setf *problem-stack* nil))
+
+(defun remove-problem-from-stack (p)
+  (setf *problem-stack*  (remove nil (mapcar (lambda (x)
+					       (if (subsumes? x p) nil x))  
+					     *problem-stack*))))
+
 (defparameter *strageties* ())
 (defmacro define-strategy (name args &rest body)
   (push name *strageties* )
@@ -76,11 +109,11 @@
  (if (fresh-OEWffs B)
        (let* ((*oe-expanded* *oe-expanded*)
 	      (focus (first (fresh-OEWffs B)) )
-	      (new-B-left (cons (first (or-elim focus)) B))
+	      (new-B-left  (cons (first  (or-elim focus)) B))
 	      (new-B-right (cons (second (or-elim focus)) B)))
 	 (let 
-	     ((remainder-1 (let ((*oe-expanded* *oe-expanded*)) (Prove-Int new-B-left g)))
-	      (remainder-2 (let ((*oe-expanded* *oe-expanded*)) (Prove-Int new-B-right g))))
+	     ((remainder-1 (let ((*oe-expanded* *oe-expanded*)) (Prove-int new-B-left g)))
+	      (remainder-2 (let ((*oe-expanded* *oe-expanded*)) (Prove-int new-B-right g))))
 	   (Join 
 	    (subproof (first (or-elim focus)) remainder-1) (subproof (second (or-elim focus)) remainder-2)
 	    (list (proof-step :v-elim  focus g)))))))
@@ -101,26 +134,35 @@
 	       (proof-step :cond-elim   (second (args i-mp)))))))
 
 (define-strategy reductio! (B g)
-  (if (not (tried-reductio? g))
-       (let* ((reductio (try (lambda (red-target) 
-				 (Prove-Int 
-				  (cons (dual g) B)
-				  (dual red-target))) 
-			       B)))
-	 (Join
-	  (subproof  (dual g) reductio
-		    )
-	  (proof-step :reductio
-			   
-			   g)))))
-
+;  )
+  (if (not (member (dual g) B :test #'equalp))
+;      (if (not (tried-reductio? (compress (make-problem B g)))))
+      (multiple-value-bind 
+	    (reductio-proof reductio-target)
+	  (try (lambda (red-target) 
+		 (let ((*reductio-tried* *reductio-tried*))
+		   (Prove-Int 
+		    (cons (dual g) B)
+		    (dual red-target)))) 
+	       B)
+	(Join
+	 (subproof  (dual g) reductio-proof)
+	 (proof-step :reductio reductio-target g)))))
+  
 (define-strategy all-reductio! (B g)
-     (let ((subs (reduce #'append (mapcar #'subformulae B))))
-     (let ((*reductio-tried* *reductio-tried*)) 
-       (apply #'Any (mapcar (lambda (s) (if (not (tried-reductio? s))  
-					    (Join (Prove-int (cons (dual g) B) s)
-						  (Prove-int (cons (dual g) B) (dual s)))))
-			    subs)))))
+  (let ((subs (reduce #'append (mapcar #'subformulae  (cons g B)))))
+;    (if (not (member (dual g) subs :test #'equalp)))
+    (apply #'Any (mapcar (lambda (s) 
+			   (if (not (tried-reductio? (compress (make-problem B g)))) 
+			       (Join
+				(subproof (dual g)  
+					  (Join 			       
+					   (let ((*reductio-tried* *reductio-tried*)) 
+					     (Prove-int (cons (dual g) B) s))
+					   (let ((*reductio-tried* *reductio-tried*)) 
+					     (Prove-int (cons (dual g) B) (dual s)))))
+				(proof-step :reductio g))))
+			 subs))))
 
 
 ;;; Note: Here we have the linear style of natural deduction.
@@ -133,7 +175,9 @@
 	(*ae-expanded* nil)
 	(*mp-expanded* nil)
 	(*oe-expanded* nil))
+    ;(push-problem (make-problem B g))
     (let ((proof (Prove-Int B g)))
+      (clear-problem-stack) 
       (if (and proof (not inner?))
 	  (list :Base B :Goal g
 		proof)
@@ -176,34 +220,26 @@
 	   (log-step (concatenate 'string "branch failed on " (princ-to-string ,test))) ,else))))
 
 (defun Prove-Int (B g)
-  "A disjunction of possible proof strategies."
-  (or
-   (reiterate! B g)
-   (bicond-intro! B g)
-   (incons! B g)
-   (cond-intro! B g)
-   (and-intro! B g)
-   (or-intro! B g)
-   (cond-elim! B g)
-   (and-elim! B g)
-   (or-elim! B g)
-   (inter-cond-goals! B g)
-   (reductio! B g)
-   (all-reductio! B g)))
+  (if (not (is-problem-in-stack? (make-problem (remove-duplicates B :test #'equalp) g)))
+      (progn (push-problem (make-problem B g))
+	     (let ((ans (or
+			 (reiterate! B g)
+			 (incons! B g)
+			 (and-elim! B g)
+			 (cond-elim! B g)
+			 (bicond-intro! B g)
+			 (cond-intro! B g)
+			 (and-intro! B g)
+			 (or-intro! B g)
+			 (or-elim! B g)
+			 (inter-cond-goals! B g)
+			 (let ((*reductio-tried* *reductio-tried*)) (reductio! B g))
+			 (all-reductio! B g)
+			 )))
+	       (remove-problem-from-stack (make-problem B g))
+	       ans))))
  
 
-   ;; (if (and  (is-negation? g)(not (tried-reductio? g)))
-   ;;     (let* ((reductio (try (lambda (red-target) 
-   ;; 				 (Prove-Int 
-   ;; 				  (cons (dual g) B)
-   ;; 				  (dual red-target))) 
-   ;; 			       B)))
-   ;; 	 (Join reductio
-   ;; 	       (proof-step :reductio
-   ;; 			   (cons (dual g) B) 
-   ;; 			   (goal reductio)
-   ;; 			   g))))
-  
 
 (defun subproof (added p) (if p (list :subproof :added added p) nil))
 
@@ -300,13 +336,16 @@
   (if (null cases)
       nil
       (let ((first-try (funcall f (first cases))))
-	(if first-try first-try (try f (rest cases))))))
+	(if first-try (values first-try (first cases)) (try f (rest cases)))))) 
 
 (defun args (f) (rest f))
 (defun subformulae (f)
+  (if (atom f) ()
+      (remove-duplicates (reduce #'append (mapcar #'subformulae-int (args f))) :test #'equalp)))
+(defun subformulae-int (f)
   (if (atom f) 
       (list f)
-       (reduce #'append (mapcar #'subformulae (args f)))))
+      (cons f (reduce #'append (mapcar #'subformulae-int (args f))))))
 
 
 (defun igoals-mp (B g)
