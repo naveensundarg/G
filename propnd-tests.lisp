@@ -56,20 +56,38 @@
 (defparameter *prop-nd-test-16*
   (list (list '(not (or (not P) Q))) 'P))
 
-
-
 ;;; Problems from ITL
 
 (defparameter *prop-nd-test-17* 
   (list  (list '(implies H (and E D))
 		 '(implies (or E My) R)
 		 '(implies Ma (not R)))
-	'(implies H (not Ma))))
+	'(implies H (not Ma)))
+  "kok_o213_8_32")
+
+(defparameter *prop-nd-test-18* 
+  (list (list '(implies (not Cube_b) Small_b)
+	      '(implies Small_c (or Small_d Small_e))
+	      '(implies Small_d (not Small_c))
+	      '(implies Cube_b (not Small_e)))
+	'(implies Small_c Small_b))
+  "kok_o213_8_35")
+
+(defparameter *prop-nd-test-19* 
+    (list  (list '(and Small_a (or Medium_b Large_c))
+			'(implies Medium_b Front_Of_a_b)
+			'(implies Large_c Tet_c))
+	  '(implies (not Tet_c) Front_Of_a_b))
+  "kok_o223_8_48")
+
+(defparameter *prop-nd-test-20*  
+  (list () '(iff (and A (not B))
+	     (not (implies A B)))))
 
 (defun range (a b) (loop for i from a to b collect i))
 
 (defparameter *prop-nd-tests* 
-  (let ((total-tests 16))
+  (let ((total-tests 20))
     (mapcar (lambda (n)
 	      (eval 
 	       (read-from-string 
@@ -81,11 +99,13 @@
 
 
 (defun run-tests ()
-  (let ((count 1))
+  (let ((count 0)
+	(passed 0))
     (mapcar (lambda (test-case) 
 	      (format t "Running test on case ~a:~a ~%      Passed? ~a~% " 
-		      count test-case (if (null (apply #'Prove test-case)) "NO!" "Yes."))
+		      (1+ count) test-case (if (null (apply #'Prove test-case)) "NO!" (progn (incf passed) "Yes.")))
 	      (incf count) (values))
-	    *prop-nd-tests*)))
+	    *prop-nd-tests*)
+    (format t "~% Total Passed ~a out of ~a." passed count)))
 
 (run-tests)

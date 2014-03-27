@@ -8,10 +8,15 @@
 
 
 
-
+(defparameter *strageties* ())
 (defmacro define-strategy (name args &rest body)
+  (push name *strageties* )
   `(defun ,name ,args ,@body))
 
+(defmacro trace-prover (&optional (strategy nil))
+  `(if ,strategy
+      (trace ,strategy)
+      (progn ,@(mapcar (lambda (s) (list 'trace s)) *strageties*))))
 
 (define-strategy incons! (B g)
   (if (inconsistent-pair B) 
@@ -27,6 +32,17 @@
 	      (Join 
 		    (subproof p (Prove-Int (cons p B) q)) 
 		    (proof-step :cond-intro (list :discharges p) g)))))
+
+(define-strategy bicond-intro! (B g)
+    (if (is-biconditional? g) 
+	(destructuring-bind 
+	      (conn p q) g  (declare (ignore conn))
+	      (Join (Join 
+		     (subproof p (Prove-Int (cons p B) q)) 
+		     (proof-step :cond-intro (list :discharges p) g))
+		    (Join 
+		     (subproof q (Prove-Int (cons q B) p)) 
+		     (proof-step :cond-intro (list :discharges q) g))))))
 
 (define-strategy and-intro! (B g)
    (if (is-conjunction? g) 
@@ -163,6 +179,7 @@
   "A disjunction of possible proof strategies."
   (or
    (reiterate! B g)
+   (bicond-intro! B g)
    (incons! B g)
    (cond-intro! B g)
    (and-intro! B g)
@@ -192,10 +209,10 @@
 
 
 
-
-;;; Some simple help functions.
+;;; Some simple helper functions.
 (defun can-reiterate? (B g) (member g B :test #'equalp))
 (defun is-conditional? (g) (matches g '(implies ?x ?y)))
+(defun is-biconditional? (g) (matches g '(iff ?x ?y)))
 (defun is-conjunction? (g) (matches g '(and ?x ?y)))
 (defun is-disjunction? (g) (matches g '(or ?x ?y)))
 (defun is-negation? (g) (matches g '(not ?x)))
