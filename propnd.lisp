@@ -6,6 +6,10 @@
 (defparameter *mp-expanded* nil)
 (defparameter *reductio-tried* nil)
 
+(defun prompt-read (prompt)
+  (format *query-io* "~a: " prompt)
+  (force-output *query-io*)
+  (read-line *query-io*))
 
 
 (defparameter *problem-stack* nil)
@@ -112,8 +116,14 @@
 	      (new-B-left  (cons (first  (or-elim focus)) B))
 	      (new-B-right (cons (second (or-elim focus)) B)))
 	 (let 
-	     ((remainder-1 (let ((*oe-expanded* *oe-expanded*)) (Prove-int new-B-left g)))
-	      (remainder-2 (let ((*oe-expanded* *oe-expanded*)) (Prove-int new-B-right g))))
+	     ((remainder-1 (let ((*oe-expanded* *oe-expanded*)
+			;	 (*reductio-tried* *reductio-tried*)
+				 ) 
+			     (Prove-int new-B-left g)))
+	      (remainder-2 (let ((*oe-expanded* *oe-expanded*)
+				; (*reductio-tried* *reductio-tried*)
+				 ) 
+			     (Prove-int new-B-right g))))
 	   (Join 
 	    (subproof (first (or-elim focus)) remainder-1) (subproof (second (or-elim focus)) remainder-2)
 	    (list (proof-step :v-elim  focus g)))))))
@@ -134,11 +144,12 @@
 	       (proof-step :cond-elim   (second (args i-mp)))))))
 
 (define-strategy reductio! (B g)
-  (if (not (member g B :test #'equalp))
+  (if t ;(and (not (member g B :test #'equalp)) (not (member (dual  g) B :test #'equalp)))
       (multiple-value-bind 
 	    (reductio-proof reductio-target)
 	  (try (lambda (red-target) 
-		 (if (not (tried-reductio? (compress (make-problem B g))))
+		 (if (not (tried-reductio? (list g (dual red-target))	;(compress (make-problem (cons (dual g) B) red-target))
+					   ))
 		     (let ((*reductio-tried* *reductio-tried*))
 		       (Prove-Int 
 			(cons (dual g) B)
@@ -147,21 +158,29 @@
 	(Join
 	 (subproof  (dual g) reductio-proof)
 	 (proof-step :reductio reductio-target g)))))
-  
+(defun complexity (f)
+  (if (atom f)
+      1
+      (apply #'+ (mapcar #'complexity f))))
+
+(complexity '(and (and a (if a b)) b))
 (define-strategy all-reductio! (B g)
   (let ((subs (reduce #'append (mapcar #'subformulae  (cons g B)))))
-;    (if (not (member (dual g) subs :test #'equalp)))
-    (apply #'Any (mapcar (lambda (s) 
-			   (if (not (tried-reductio? (compress (make-problem B g)))) 
-			       (Join
-				(subproof (dual g)  
-					  (Join 			       
-					   (let ((*reductio-tried* *reductio-tried*)) 
-					     (Prove-int (cons (dual g) B) s))
-					   (let ((*reductio-tried* *reductio-tried*)) 
-					     (Prove-int (cons (dual g) B) (dual s)))))
-				(proof-step :reductio g))))
-			 subs))))
+    (if t ;(and (not (member g B :test #'equalp)) (not (member (dual  g) B :test #'equalp)))
+	(apply #'Any (mapcar (lambda (s) 
+			       (if (and (<= (complexity s) (complexity g))
+					(not (tried-reductio? (list  g (dual g)) ;(compress (make-problem (cons (dual g) B) (and (dual s) s)))
+							      )) 
+					) 
+				   (Join
+				    (subproof (dual g)  
+					      (Join 			       
+					       (let ((*reductio-tried* *reductio-tried*)) 
+						 (Prove-int (cons (dual g) B) s))
+					       (let ((*reductio-tried* *reductio-tried*)) 
+						 (Prove-int (cons (dual g) B) (dual s)))))
+				    (proof-step :reductio g))))
+			     subs)))))
 
 
 ;;; Note: Here we have the linear style of natural deduction.
@@ -176,7 +195,7 @@
 	(*oe-expanded* nil))
     ;(push-problem (make-problem B g))
     (let ((proof (Prove-Int B g)))
-      (clear-problem-stack) 
+     (clear-problem-stack) 
       (if (and proof (not inner?))
 	  (list :Base B :Goal g
 		proof)
@@ -218,24 +237,27 @@
 	 (progn 
 	   (log-step (concatenate 'string "branch failed on " (princ-to-string ,test))) ,else))))
 
+(defparameter *debug* nil)
 (defun Prove-Int (B g)
- ; (prompt-read (princ-to-string (list B :Goal g)))
-  (if (not (is-problem-in-stack? (make-problem (remove-duplicates B :test #'equalp) g)))
-      (progn (push-problem (make-problem B g))
+  (if *debug* (prompt-read (princ-to-string (list B :Goal g))))
+  (if (not (is-problem-in-stack? 
+	    (make-problem 
+	     (remove-duplicates B :test #'equalp)
+	     g)))
+      (progn (push-problem (make-problem (remove-duplicates B :test #'equalp) g))
 	     (let ((ans (or
 			 (reiterate! B g)
 			 (incons! B g)
 			 (and-elim! B g)
 			 (cond-elim! B g)
-			(bicond-intro! B g)
+			 (bicond-intro! B g)
 			 (cond-intro! B g)
 			 (and-intro! B g)
 			 (or-intro! B g)
 			 (or-elim! B g)
 			 (inter-cond-goals! B g)
-			 (let ((*reductio-tried* *reductio-tried*))  (reductio! B g))
-			 (let ((*reductio-tried* *reductio-tried*)) (all-reductio! B g))
-			 )))
+			 (reductio! B g)
+			 (all-reductio! B g))))
 	       (remove-problem-from-stack (make-problem B g))
 	       ans))))
  

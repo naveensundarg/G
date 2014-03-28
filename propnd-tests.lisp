@@ -93,12 +93,79 @@
   (list ()
 	'(implies P (implies Q P))))
 
+;;; problems from "Seventy-five problems for testing ATP."
+(defparameter *prop-nd-test-23* 
+  (list () '(iff (implies p q) (implies (not q) (not p))))
+  "1")
 
+(defparameter *prop-nd-test-24* 
+  (list () '(iff  (not (not p)) p))
+  "2")
+
+
+(defparameter *prop-nd-test-25* 
+  (list () '(implies (not (implies p q))
+	     (implies q p)))
+  "3")
+
+
+(defparameter *prop-nd-test-26* 
+  (list () '(iff  (implies (not p) q)
+	     (implies (not q) p)))
+  "4")
+
+(defparameter *prop-nd-test-27* 
+  (list () '(implies (implies (or p q) (or p r))
+	     (or p (implies q r))))
+  "5")
+
+(defparameter *prop-nd-test-28*
+    (list ()
+	   '(or P (not (not (not P)))))
+  "7")
+
+(defparameter *prop-nd-test-29*
+  (list ()
+	 '(implies (implies (implies p q) p) p))
+  "8 (Peirce's Law)")
+
+
+(defparameter *prop-nd-test-30*
+  (list ()
+	'(implies (and (and (or p q) (or (not p) q)) (or p (not q)))
+	  (not (or (not p) (not q))))
+	"Problem 9"))
+
+
+(defparameter *prop-nd-test-31* (list (list '(implies q r)
+			     '(implies r (and p q))
+			     '(implies p (or q r)))
+		       '(implies p q))
+  "Problem 10")
+
+
+(defparameter *prop-nd-test-32*
+  (list () '(iff p p))
+  "Problem 11")
+
+
+(defparameter *prop-nd-test-33*
+  (list () '(iff (iff (iff p q) r)
+		     (iff p (iff q r))))
+  "Problem 12")
+
+
+(defparameter *prop-nd-test-34*
+  (list () 
+	'(iff (or p (and q r))
+	  (and (or p q) (or p r)))))
 
 (defun range (a b) (loop for i from a to b collect i))
 
+(defparameter *ignores* (list 27 28 30 33 34))
+
 (defparameter *prop-nd-tests* 
-  (let ((total-tests 22))
+  (let ((total-tests 34))
     (mapcar (lambda (n)
 	      (eval 
 	       (read-from-string 
@@ -113,11 +180,16 @@
   (let ((count 0)
 	(passed 0))
     (mapcar (lambda (test-case) 
-	      (format t "Running test on case ~a:~a ~%      Passed? ~a~% " 
-		      (1+ count) test-case (if (null (apply #'Prove test-case)) "NO!" (progn (incf passed) "Yes.")))
-	      (incf count) (values))
+	      (if (not (member (1+ count) *ignores*))
+		  (progn (format t "Running test on case ~a:~a ~%      Passed? ~a~% " 
+				 (1+ count) test-case (if (null (apply #'Prove test-case)) "NO!" (progn (incf passed) "Yes.")))
+			 (incf count) (values))
+		  (progn (format t "Ignoring test on case ~a:~a ~%      " 
+				 (1+ count) test-case )
+			 (incf count))))
 	    *prop-nd-tests*)
-    (format t "~% Total Passed ~a out of ~a." passed count)
+    (format t "~% Total Passed ~a out of ~a." passed (- count (length *ignores*)))
+    (format t "~% Ignored ~a" (length *ignores*))
     (force-output t)))
 
 (run-tests)
