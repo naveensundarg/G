@@ -148,7 +148,7 @@
       (multiple-value-bind 
 	    (reductio-proof reductio-target)
 	  (try (lambda (red-target) 
-		 (if (not (tried-reductio? (list g (dual red-target))	;(compress (make-problem (cons (dual g) B) red-target))
+		 (if (not (tried-reductio? (list g red-target)	;(compress (make-problem (cons (dual g) B) red-target))
 					   ))
 		     (let ((*reductio-tried* *reductio-tried*))
 		       (Prove-Int 
@@ -169,9 +169,7 @@
     (if t ;(and (not (member g B :test #'equalp)) (not (member (dual  g) B :test #'equalp)))
 	(apply #'Any (mapcar (lambda (s) 
 			       (if (and (<= (complexity s) (complexity g))
-					(not (tried-reductio? (list  g (dual g)) ;(compress (make-problem (cons (dual g) B) (and (dual s) s)))
-							      )) 
-					) 
+					(not (tried-reductio? g))) 
 				   (Join
 				    (subproof (dual g)  
 					      (Join 			       
