@@ -87,10 +87,18 @@
 
 (defparameter *prop-nd-test-21*  
   (list () '(or P (not P))))
+
+
+(defparameter *prop-nd-test-22*
+  (list ()
+	'(implies P (implies Q P))))
+
+
+
 (defun range (a b) (loop for i from a to b collect i))
 
 (defparameter *prop-nd-tests* 
-  (let ((total-tests 21))
+  (let ((total-tests 22))
     (mapcar (lambda (n)
 	      (eval 
 	       (read-from-string 
