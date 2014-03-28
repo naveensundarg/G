@@ -134,16 +134,15 @@
 	       (proof-step :cond-elim   (second (args i-mp)))))))
 
 (define-strategy reductio! (B g)
-;  )
-  (if (not (member (dual g) B :test #'equalp))
-;      (if (not (tried-reductio? (compress (make-problem B g)))))
+  (if (not (member g B :test #'equalp))
       (multiple-value-bind 
 	    (reductio-proof reductio-target)
 	  (try (lambda (red-target) 
-		 (let ((*reductio-tried* *reductio-tried*))
-		   (Prove-Int 
-		    (cons (dual g) B)
-		    (dual red-target)))) 
+		 (if (not (tried-reductio? (compress (make-problem B g))))
+		     (let ((*reductio-tried* *reductio-tried*))
+		       (Prove-Int 
+			(cons (dual g) B)
+			(dual red-target))))) 
 	       B)
 	(Join
 	 (subproof  (dual g) reductio-proof)
@@ -220,6 +219,7 @@
 	   (log-step (concatenate 'string "branch failed on " (princ-to-string ,test))) ,else))))
 
 (defun Prove-Int (B g)
+ ; (prompt-read (princ-to-string (list B :Goal g)))
   (if (not (is-problem-in-stack? (make-problem (remove-duplicates B :test #'equalp) g)))
       (progn (push-problem (make-problem B g))
 	     (let ((ans (or
@@ -227,14 +227,14 @@
 			 (incons! B g)
 			 (and-elim! B g)
 			 (cond-elim! B g)
-			 (bicond-intro! B g)
+			(bicond-intro! B g)
 			 (cond-intro! B g)
 			 (and-intro! B g)
 			 (or-intro! B g)
 			 (or-elim! B g)
 			 (inter-cond-goals! B g)
-			 (let ((*reductio-tried* *reductio-tried*)) (reductio! B g))
-			 (all-reductio! B g)
+			 (let ((*reductio-tried* *reductio-tried*))  (reductio! B g))
+			 (let ((*reductio-tried* *reductio-tried*)) (all-reductio! B g))
 			 )))
 	       (remove-problem-from-stack (make-problem B g))
 	       ans))))
@@ -340,8 +340,8 @@
 
 (defun args (f) (rest f))
 (defun subformulae (f)
-  (if (atom f) ()
-      (remove-duplicates (reduce #'append (mapcar #'subformulae-int (args f))) :test #'equalp)))
+  (if (atom f) (list f)
+      (cons f (remove-duplicates (reduce #'append (mapcar #'subformulae-int (args f))) :test #'equalp))))
 (defun subformulae-int (f)
   (if (atom f) 
       (list f)
