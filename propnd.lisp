@@ -85,20 +85,8 @@
    (if (is-conjunction? g) 
        (destructuring-bind 
 	     (conn p q) g  (declare (ignore conn))
-	     (Join (let ( (*seen* nil) 
-			 (*expanded* nil) 
-			  (*reductio-tried* nil)
-			  (*ae-expanded* nil)
-			  (*mp-expanded* nil)
-			  (*oe-expanded* nil))(Prove-int B p ))
-		   (let
-		       ( (*seen* nil) 
-			(*expanded* nil) 
-			 (*reductio-tried* nil)
-			 (*ae-expanded* nil)
-			 (*mp-expanded* nil)
-			 (*oe-expanded* nil))
-		     (Prove-int B q )) 
+	     (Join (let ((*reductio-tried* *reductio-tried*)) (Prove-int B p))
+		   (let ((*reductio-tried* *reductio-tried*)) (Prove-int B q )) 
 		   (proof-step :&-intro (list p q) g)))))
 
 (define-strategy and-elim! (B g)
@@ -115,8 +103,8 @@
   (if (is-disjunction? g) 
        (destructuring-bind 
 	     (conn p q) g  (declare (ignore conn))
-	     (let ((remainder (or (Prove-int B p)
-				   (Prove-int B q))))
+	     (let ((remainder (or (let ((*reductio-tried* *reductio-tried*)) (Prove-int B p))
+				  (let ((*reductio-tried* *reductio-tried*)) (Prove-int B q)))))
 	       (if remainder
 		   (append remainder (list (proof-step :v-intro g))
 			 ))))))
