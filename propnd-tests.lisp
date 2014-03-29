@@ -160,12 +160,17 @@
 	'(iff (or p (and q r))
 	  (and (or p q) (or p r)))))
 
+
+(defparameter *prop-nd-test-35*
+  (list ()
+	'(implies (implies p (not p)) (implies p q))))
+
 (defun range (a b) (loop for i from a to b collect i))
 
 (defparameter *ignores* (list 27  30 33 34))
 
 (defparameter *prop-nd-tests* 
-  (let ((total-tests 34))
+  (let ((total-tests 35))
     (mapcar (lambda (n)
 	      (eval 
 	       (read-from-string 
@@ -181,15 +186,17 @@
 	(passed 0))
     (mapcar (lambda (test-case) 
 	      (if (not (member (1+ count) *ignores*))
-		  (progn (format t "Running test on case ~a:~a ~%      Passed? ~a~% " 
-				 (1+ count) test-case (if (null (apply #'Prove test-case)) "NO!" (progn (incf passed) "Yes.")))
-			 (incf count) (values))
-		  (progn (format t "Ignoring test on case ~a:~a ~%      " 
-				 (1+ count) test-case )
+		  (progn ;; (format t "Running test on case ~a:~a ~%      Passed? ~a~% " 
+			 ;; 	 (1+ count) test-case (if (null (apply #'Prove test-case)) "NO!" (progn (incf passed) "Yes.")))
+		    (incf count) (not (null (apply #'Prove test-case))))
+		  (progn ;; (format t "Ignoring test on case ~a:~a ~%      " 
+			;	 (1+ count) test-case)
+		    
 			 (incf count))))
 	    *prop-nd-tests*)
-    (format t "~% Total Passed ~a out of ~a." passed (- count (length *ignores*)))
-    (format t "~% Ignored ~a" (length *ignores*))
-    (force-output t)))
+  ;;  (format t "~% Total Passed ~a out of ~a." passed (- count (length *ignores*)))
+    ;;(format t "~% Ignored ~a" (length *ignores*))
+    ;(force-output t)
+    ))
 
 (run-tests)

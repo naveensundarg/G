@@ -103,7 +103,7 @@
   (if (is-disjunction? g) 
        (destructuring-bind 
 	     (conn p q) g  (declare (ignore conn))
-	     (let ((remainder (Any (Prove-int B p)
+	     (let ((remainder (or (Prove-int B p)
 				   (Prove-int B q))))
 	       (if remainder
 		   (append remainder (list (proof-step :v-intro g))
@@ -121,7 +121,7 @@
 				 ) 
 			     (Prove-int new-B-left g)))
 	      (remainder-2 (let ((*oe-expanded* *oe-expanded*)
-				; (*reductio-tried* *reductio-tried*)
+				;(*reductio-tried* *reductio-tried*)
 				 ) 
 			     (Prove-int new-B-right g))))
 	   (Join 
@@ -148,8 +148,7 @@
       (multiple-value-bind 
 	    (reductio-proof reductio-target)
 	  (try (lambda (red-target) 
-		 (if (not (tried-reductio? (list g red-target)	;(compress (make-problem (cons (dual g) B) red-target))
-					   ))
+		 (if (not (tried-reductio? red-target))
 		     (let ((*reductio-tried* *reductio-tried*))
 		       (Prove-Int 
 			(cons (dual g) B)
@@ -158,6 +157,7 @@
 	(Join
 	 (subproof  (dual g) reductio-proof)
 	 (proof-step :reductio reductio-target g)))))
+
 (defun complexity (f)
   (if (atom f)
       1
@@ -216,6 +216,8 @@
    Else it returns nil."
   (if (every (complement #'null) args) args nil))
 
+(Any 1 2 3)
+(or 1 2 3)
 
 
 (defun Any (&rest args)
@@ -237,7 +239,12 @@
 
 (defparameter *debug* nil)
 (defun Prove-Int (B g)
-  (if *debug* (prompt-read (princ-to-string (list B :Goal g))))
+  (if *debug* 
+      (progn
+	(let ((*command* (prompt-read (princ-to-string (list B :Goal g)))))
+	  (cond ((equalp *command* "n")
+		 (progn (format t "[quitting]") (return-from Prove-Int nil)))
+		(t (format t "[>]") )))))
   (if (not (is-problem-in-stack? 
 	    (make-problem 
 	     (remove-duplicates B :test #'equalp)
@@ -245,13 +252,14 @@
       (progn (push-problem (make-problem (remove-duplicates B :test #'equalp) g))
 	     (let ((ans (or
 			 (reiterate! B g)
+			 (or-intro! B g)
+
 			 (incons! B g)
 			 (and-elim! B g)
 			 (cond-elim! B g)
 			 (bicond-intro! B g)
 			 (cond-intro! B g)
 			 (and-intro! B g)
-			 (or-intro! B g)
 			 (or-elim! B g)
 			 (inter-cond-goals! B g)
 			 (reductio! B g)
