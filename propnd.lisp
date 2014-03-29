@@ -85,8 +85,20 @@
    (if (is-conjunction? g) 
        (destructuring-bind 
 	     (conn p q) g  (declare (ignore conn))
-	     (Join (Prove B p t)
-		   (Prove B q t) 
+	     (Join (let ( (*seen* nil) 
+			 (*expanded* nil) 
+			  (*reductio-tried* nil)
+			  (*ae-expanded* nil)
+			  (*mp-expanded* nil)
+			  (*oe-expanded* nil))(Prove-int B p ))
+		   (let
+		       ( (*seen* nil) 
+			(*expanded* nil) 
+			 (*reductio-tried* nil)
+			 (*ae-expanded* nil)
+			 (*mp-expanded* nil)
+			 (*oe-expanded* nil))
+		     (Prove-int B q )) 
 		   (proof-step :&-intro (list p q) g)))))
 
 (define-strategy and-elim! (B g)
@@ -142,21 +154,20 @@
        (let  ((i-mp (first (igoals-mp B g))))
 	 (Join (Prove-int B (first (args i-mp)))
 	       (proof-step :cond-elim   (second (args i-mp)))))))
-
+;(not (member g B :test #'equalp)) 
 (define-strategy reductio! (B g)
-  (if t ;(and (not (member g B :test #'equalp)) (not (member (dual  g) B :test #'equalp)))
-      (multiple-value-bind 
-	    (reductio-proof reductio-target)
-	  (try (lambda (red-target) 
-		 (if (not (tried-reductio? red-target))
-		     (let ((*reductio-tried* *reductio-tried*))
-		       (Prove-Int 
-			(cons (dual g) B)
-			(dual red-target))))) 
-	       B)
-	(Join
-	 (subproof  (dual g) reductio-proof)
-	 (proof-step :reductio reductio-target g)))))
+  (multiple-value-bind 
+	(reductio-proof reductio-target)
+      (try (lambda (red-target) 
+	     (if (not (tried-reductio? red-target))
+		 (let ((*reductio-tried* *reductio-tried*))
+		   (Prove-Int 
+		    (remove-duplicates (cons (dual g) B) :test #'equalp)
+		    (dual red-target))))) 
+	   B)
+    (Join
+     (subproof  (dual g) reductio-proof)
+     (proof-step :reductio reductio-target g))))
 
 (defun complexity (f)
   (if (atom f)
@@ -168,7 +179,7 @@
   (let ((subs (reduce #'append (mapcar #'subformulae  (cons g B)))))
     (if t ;(and (not (member g B :test #'equalp)) (not (member (dual  g) B :test #'equalp)))
 	(apply #'Any (mapcar (lambda (s) 
-			       (if (and (<= (complexity s) (complexity g))
+			       (if  (and
 					(not (tried-reductio? g))) 
 				   (Join
 				    (subproof (dual g)  
@@ -216,8 +227,6 @@
    Else it returns nil."
   (if (every (complement #'null) args) args nil))
 
-(Any 1 2 3)
-(or 1 2 3)
 
 
 (defun Any (&rest args)
@@ -264,7 +273,7 @@
 			 (inter-cond-goals! B g)
 			 (reductio! B g)
 			 (all-reductio! B g))))
-	       (remove-problem-from-stack (make-problem B g))
+	       (if ans (remove-problem-from-stack (make-problem B g)))
 	       ans))))
  
 
