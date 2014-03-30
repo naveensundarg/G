@@ -172,7 +172,7 @@
     (if  (and  (not (member (dual  g) B :test #'equalp)))
 	(apply #'Any (mapcar (lambda (s) 
 			       (if  (and
-				     (not (tried-reductio?  g))) 
+				     (not (tried-reductio?   g))) 
 				   (Join
 				    (subproof (dual g)  
 					      (Join 			       
@@ -268,7 +268,7 @@
 			 (bicond-intro! B g)
 			 (cond-intro! B g)
 			 (and-intro! B g)
-			 (let ((*reductio-tried* *reductio-tried*)))	 (or-elim! B g)
+			 (or-elim! B g)
 			 (inter-cond-goals! B g)
 			 (reductio! B g)
 			 (all-reductio! B g)
@@ -388,7 +388,8 @@
 (defun igoals-mp (B g)
   (remove-if-not (lambda (f)
 		   (and (is-conditional? f)
-			(equalp (second (args f)) g)))
+			(member g (subformulae (second (args f))) :test #'equalp)
+			))
 		  B))
 
 (subformulae '(and (if b r) a))

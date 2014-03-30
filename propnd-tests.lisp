@@ -167,7 +167,7 @@
 
 (defun range (a b) (loop for i from a to b collect i))
 
-(defparameter *ignores* (list 27  33))
+(defparameter *ignores* (list 33))
 
 (defparameter *prop-nd-tests* 
   (let ((total-tests 35))
