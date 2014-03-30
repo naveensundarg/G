@@ -23,7 +23,7 @@
 	(goal (second problem)))
     (list (remove-duplicates premises :test #'equalp) goal)))
 
-(defun push-problem (p) (push (compress p) *problem-stack*))
+(defun push-problem (p) (push p *problem-stack*))
 
 (defun subsumes? (P1 P2)
   (let ((premises1 (premises P1))
@@ -31,7 +31,7 @@
 	(goal1 (goal P1))
 	(goal2 (goal P2)))
     (and (equalp goal1 goal2)
-	 (subsetp (remove-duplicates premises2 :test #'equalp) premises1))))
+	 (equalp premises2 premises1))))
 
 (defun is-problem-in-stack? (p) (some (complement #'null)
 				      (mapcar (lambda (x)
@@ -67,7 +67,7 @@
 	(destructuring-bind 
 	      (conn p q) g  (declare (ignore conn))
 	      (Join 
-		    (subproof p (Prove-Int (cons p B) q)) 
+	       (subproof p  (Prove-Int (cons p B) q)) 
 		    (proof-step :cond-intro (list :discharges p) g)))))
 
 (define-strategy bicond-intro! (B g)
@@ -75,18 +75,23 @@
 	(destructuring-bind 
 	      (conn p q) g  (declare (ignore conn))
 	      (Join (Join 
-		     (subproof p (Prove-Int (cons p B) q)) 
+		     (subproof p (let ((*ae-expanded* *ae-expanded*)
+				       (*oe-expanded* *oe-expanded*)
+				       (*reductio-tried* *reductio-tried*))
+				   (Prove-Int (cons p B) q))) 
 		     (proof-step :cond-intro (list :discharges p) g))
 		    (Join 
-		     (subproof q (Prove-Int (cons q B) p)) 
+		     (subproof q (let ((*ae-expanded* *ae-expanded*)
+				       (*oe-expanded* *oe-expanded*)
+				       (*reductio-tried* *reductio-tried*)) (Prove-Int (cons q B) p))) 
 		     (proof-step :cond-intro (list :discharges q) g))))))
 
 (define-strategy and-intro! (B g)
    (if (is-conjunction? g) 
        (destructuring-bind 
 	     (conn p q) g  (declare (ignore conn))
-	     (Join (let ((*reductio-tried* *reductio-tried*)) (Prove-int B p))
-		   (let ((*reductio-tried* *reductio-tried*)) (Prove-int B q )) 
+	     (Join (let ((*reductio-tried* *reductio-tried*)  (*oe-expanded* *oe-expanded*)) (Prove-int B p))
+		   (let ((*reductio-tried* *reductio-tried*) (*oe-expanded* *oe-expanded*)) (Prove-int B q )) 
 		   (proof-step :&-intro (list p q) g)))))
 
 (define-strategy and-elim! (B g)
@@ -103,11 +108,10 @@
   (if (is-disjunction? g) 
        (destructuring-bind 
 	     (conn p q) g  (declare (ignore conn))
-	     (let ((remainder (or (let ((*reductio-tried* *reductio-tried*)) (Prove-int B p))
-				  (let ((*reductio-tried* *reductio-tried*)) (Prove-int B q)))))
+	     (let ((remainder (or (let ((*oe-expanded* *oe-expanded*)(*reductio-tried* *reductio-tried*)) (Prove-int B p))
+				  (let ((*oe-expanded* *oe-expanded*)(*reductio-tried* *reductio-tried*)) (Prove-int B q)))))
 	       (if remainder
-		   (append remainder (list (proof-step :v-intro g))
-			 ))))))
+		   (append remainder (list (proof-step :v-intro g))))))))
 
 (define-strategy or-elim! (B g)
  (if (fresh-OEWffs B)
@@ -148,7 +152,7 @@
 	(reductio-proof reductio-target)
       (try (lambda (red-target) 
 	     (if (not (tried-reductio? red-target))
-		 (let ((*reductio-tried* *reductio-tried*))
+		 (let ( (*oe-expanded* *oe-expanded*)(*reductio-tried* *reductio-tried*))
 		   (Prove-Int 
 		    (remove-duplicates (cons (dual g) B) :test #'equalp)
 		    (dual red-target))))) 
@@ -165,16 +169,16 @@
 (complexity '(and (and a (if a b)) b))
 (define-strategy all-reductio! (B g)
   (let ((subs (reduce #'append (mapcar #'subformulae  (cons g B)))))
-    (if t ;(and (not (member g B :test #'equalp)) (not (member (dual  g) B :test #'equalp)))
+    (if  (and  (not (member (dual  g) B :test #'equalp)))
 	(apply #'Any (mapcar (lambda (s) 
 			       (if  (and
-					(not (tried-reductio? g))) 
+				     (not (tried-reductio?  g))) 
 				   (Join
 				    (subproof (dual g)  
 					      (Join 			       
-					       (let ((*reductio-tried* *reductio-tried*)) 
+					       (let ( (*oe-expanded* *oe-expanded*)(*reductio-tried* *reductio-tried*)) 
 						 (Prove-int (cons (dual g) B) s))
-					       (let ((*reductio-tried* *reductio-tried*)) 
+					       (let ( (*oe-expanded* *oe-expanded*)(*reductio-tried* *reductio-tried*)) 
 						 (Prove-int (cons (dual g) B) (dual s)))))
 				    (proof-step :reductio g))))
 			     subs)))))
@@ -235,6 +239,13 @@
 	   (log-step (concatenate 'string "branch failed on " (princ-to-string ,test))) ,else))))
 
 (defparameter *debug* nil)
+
+;; (defun Prove-int (B g)
+;;   (let ((snark-proved (snark-user::prove-with B g)))
+;;     (if snark-proved
+;; 	(if (prove-int-raw B g) t nil)
+;; 	(if (prove-int-raw B g)  (WARN   " Unsound on :Premises ~a :Goal ~a" B g) nil ))))
+
 (defun Prove-Int (B g)
   (if *debug* 
       (progn
@@ -244,9 +255,9 @@
 		(t (format t "[>]") )))))
   (if (not (is-problem-in-stack? 
 	    (make-problem 
-	     (remove-duplicates B :test #'equalp)
+	    B 
 	     g)))
-      (progn (push-problem (make-problem (remove-duplicates B :test #'equalp) g))
+      (progn (push-problem (make-problem B g))
 	     (let ((ans (or
 			 (reiterate! B g)
 			 (or-intro! B g)
@@ -257,10 +268,11 @@
 			 (bicond-intro! B g)
 			 (cond-intro! B g)
 			 (and-intro! B g)
-			 (or-elim! B g)
+			 (let ((*reductio-tried* *reductio-tried*)))	 (or-elim! B g)
 			 (inter-cond-goals! B g)
 			 (reductio! B g)
-			 (all-reductio! B g))))
+			 (all-reductio! B g)
+			 )))
 	       (if ans (remove-problem-from-stack (make-problem B g)))
 	       ans))))
  
