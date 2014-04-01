@@ -1,49 +1,6 @@
-
-(defparameter *seen* nil)
-(defparameter *expanded* nil)
-(defparameter *ae-expanded* nil)
-(defparameter *oe-expanded* nil)
-(defparameter *mp-expanded* nil)
-(defparameter *reductio-tried* nil)
-
-(defun prompt-read (prompt)
-  (format *query-io* "~a: " prompt)
-  (force-output *query-io*)
-  (read-line *query-io*))
+(declaim (ftype function first-sat prove-int))
 
 
-(defparameter *problem-stack* nil)
-
-(defun make-problem (premises goal) (list premises goal))
-(defun premises (problem) (first problem))
-(defun goal (problem) (second problem))
-
-(defun compress (problem)
-  (let ((premises (first problem))
-	(goal (second problem)))
-    (list (remove-duplicates premises :test #'equalp) goal)))
-
-(defun push-problem (p) (push p *problem-stack*))
-
-(defun subsumes? (P1 P2)
-  (let ((premises1 (premises P1))
-	(premises2 (premises P2))
-	(goal1 (goal P1))
-	(goal2 (goal P2)))
-    (and (equalp goal1 goal2)
-	 (equalp premises2 premises1))))
-
-(defun is-problem-in-stack? (p) (some (complement #'null)
-				      (mapcar (lambda (x)
-						(if (subsumes? x p) t nil))  
-					      *problem-stack* )))
-
-(defun clear-problem-stack () (setf *problem-stack* nil))
-
-(defun remove-problem-from-stack (p)
-  (setf *problem-stack*  (remove nil (mapcar (lambda (x)
-					       (if (subsumes? x p) nil x))  
-					     *problem-stack*))))
 
 (defparameter *strageties* ())
 (defmacro define-strategy (name args &rest body)
@@ -82,7 +39,7 @@
 		     (proof-step :cond-intro (list :discharges p) g))
 		    (Join 
 		     (subproof q (let ((*ae-expanded* *ae-expanded*)
-				       (*oe-expanded* *oe-expanded*)
+strate				       (*oe-expanded* *oe-expanded*)
 				       (*reductio-tried* *reductio-tried*)) (Prove-Int (cons q B) p))) 
 		     (proof-step :cond-intro (list :discharges q) g))))))
 
@@ -140,6 +97,17 @@
 	   (if remainder  
 	       (cons (proof-step :cond-elim (first foci) (second foci) )
 		     remainder))))))
+
+
+(define-strategy bicond-elim-left! (B g)
+ (if (fresh-MPWffs B)
+       (let* ((foci (first (fresh-MPWffs B)))
+	      (new-B (cons (cond-elim foci) B)))
+	 (let ((remainder (Prove-Int new-B g) )) 
+	   (if remainder  
+	       (cons (proof-step :cond-elim (first foci) (second foci) )
+		     remainder))))))
+
 
 (define-strategy inter-cond-goals! (B g)
    (if (first (igoals-mp B g))
@@ -204,29 +172,6 @@
 
 
 
-(defun first-sat (pred list)
-  "Given a predicate pred and a list, finds the first element of the
-   list which satisfies the predicate, else returns nil"
-  (if list
-      (let ((elem (first list)))
-	  (if (funcall pred elem)
-	      elem
-	      (first-sat pred (rest list))))))
-
-
-(defun Join (&rest args)
-  "If all the arguments are non nill, returns the list of arguments. 
-   Else it returns nil."
-  (if (every (complement #'null) args) args nil))
-
-
-
-(defun Any (&rest args)
-  "If any of the arguments are non nill, returns the first of those. 
-   Else it returns nil."
-  (let ((first-sat (first-sat (complement #'null) args)))
-    (if first-sat first-sat nil)))
-
 (defun log-step (s &optional (out t)) (print (concatenate 'string "" s) out))
 
 (defmacro if* (test then &optional (else nil))
@@ -249,8 +194,8 @@
 (defun Prove-Int (B g)
   (if *debug* 
       (progn
-	(let ((*command* (prompt-read (princ-to-string (list B :Goal g)))))
-	  (cond ((equalp *command* "n")
+	(let ((command (prompt-read (princ-to-string (list B :Goal g)))))
+	  (cond ((equalp command "n")
 		 (progn (format t "[quitting]") (return-from Prove-Int nil)))
 		(t (format t "[>]") )))))
   (if (not (is-problem-in-stack? 
@@ -265,6 +210,8 @@
 			 (incons! B g)
 			 (and-elim! B g)
 			 (cond-elim! B g)
+		;	 (bicond-elim! B g)
+
 			 (bicond-intro! B g)
 			 (cond-intro! B g)
 			 (and-intro! B g)
@@ -278,118 +225,8 @@
  
 
 
-(defun subproof (added p) (if p (list :subproof :added added p) nil))
+(defun abstract-prove (premises goal &optional (inner nil))
+  (multiple-value-bind  (v f)  (abstract (cons :Whole (cons goal premises)))
+    (subst (second (first f)) (first (first f)) (prove (rest (rest v)) (first (rest v))))))
 
-
-
-;;; Some simple helper functions.
-(defun can-reiterate? (B g) (member g B :test #'equalp))
-(defun is-conditional? (g) (matches g '(implies ?x ?y)))
-(defun is-biconditional? (g) (matches g '(iff ?x ?y)))
-(defun is-conjunction? (g) (matches g '(and ?x ?y)))
-(defun is-disjunction? (g) (matches g '(or ?x ?y)))
-(defun is-negation? (g) (matches g '(not ?x)))
-(defun arg-1 (g) (second g))
-
-;; returns the smallest formula which contains f, but is semantically opposite of f.
-(defun dual (f) (if (is-negation? f) (arg-1 f) `(not ,f)))
-
-(defun inconsistent-pair (B)
-  (first-sat (complement #'null)
-	     (mapcar (lambda (x) 
-		       (first-sat (complement #'null)  (mapcar (lambda (y) (if (or (equalp x (dual y))
-									    (equalp y (dual x)))
-									(list x y)
-									nil)) B))) B)))
-
-(defun proof-step (&rest args)
-  (cons :APPLY  args))
-
-
-
-(defun matches (x y) 
- (simple-unify x y))
-
-
-
-
-(defun simple-unify (x y)
-  (handler-case
-      (if  (cl-unification:unify x y) t)
-    (cl-unification:UNIFICATION-FAILURE  () nil)))
-
-(defun mp-expanded? (f) (member f *mp-expanded* :test #'equalp))
-
-(defun ae-expanded? (f) (member f *ae-expanded* :test #'equalp))
-(defun oe-expanded? (f) (member f *oe-expanded* :test #'equalp))
-
-(defun  tried-reductio? (g &optional (b *reductio-tried*))
-  (or (member g *reductio-tried* :test #'equalp) (not (setf *reductio-tried* (cons g *reductio-tried*)))))
-
-(defun add-to-mp-expanded (f) (setf *mp-expanded* (cons f *mp-expanded*)))
-
-(defun add-to-ae-expanded (f) (setf *ae-expanded* (cons f *ae-expanded*)))
-(defun add-to-oe-expanded (f) (setf *oe-expanded* (cons f *oe-expanded*)))
-
-(defun AEWffs (B) (remove-if-not #'is-conjunction? B))
-(defun OEWffs (B) (remove-if-not #'is-disjunction? B))
-
-(defun MPWffs (B) (remove-if-not #'mp-foci? (all-pairs B)))
-
-(defun fresh-AEWffs (B) (set-difference (AEWffs B) *ae-expanded*))
-(defun fresh-OEWffs (B) (set-difference (OEWffs B) *oe-expanded*))
-(defun all-pairs (B) (reduce #'append (mapcar (lambda (x) (mapcar (lambda (y) (list x y)) B)) B)))
-(defun fresh-MPWffs (B) (set-difference (MPWffs B) *mp-expanded* :test #'equalp))
-
-(defun and-elim (f) 
-  (if (not (ae-expanded? f))
-      (add-to-ae-expanded f)) 
-  (rest f))
-
-(defun or-elim (f) 
-  (if (not (oe-expanded? f))
-    (add-to-oe-expanded f)) 
-  (rest f))
-
-(defun mp-foci? (f)
-  (let ((antecedent (first f))
-	(conditional (second f)))
-    (and (is-conditional? conditional) (equalp antecedent (first (args conditional))))))
-(defun cond-elim (f) 
-  (let ((conditional (second f))
-	(antecedent (first f)))
-    (if (mp-foci? f)
-	(add-to-mp-expanded f))
-   ; (pprint (concatenate 'string "[ " (princ-to-string *mp-expanded*) " ]"))
-    (second (args conditional))))
-
-
-;;; 
-;;; []
-(defun goal (proof) ;(first (last)) 
-       (first (last proof)))
-
-(defun try (f cases)
-  (if (null cases)
-      nil
-      (let ((first-try (funcall f (first cases))))
-	(if first-try (values first-try (first cases)) (try f (rest cases)))))) 
-
-(defun args (f) (rest f))
-(defun subformulae (f)
-  (if (atom f) (list f)
-      (cons f (remove-duplicates (reduce #'append (mapcar #'subformulae-int (args f))) :test #'equalp))))
-(defun subformulae-int (f)
-  (if (atom f) 
-      (list f)
-      (cons f (reduce #'append (mapcar #'subformulae-int (args f))))))
-
-
-(defun igoals-mp (B g)
-  (remove-if-not (lambda (f)
-		   (and (is-conditional? f)
-			(member g (subformulae (second (args f))) :test #'equalp)
-			))
-		  B))
-
-(subformulae '(and (if b r) a))
+(abstract-prove () '(or (and p q) (not (and p q))))

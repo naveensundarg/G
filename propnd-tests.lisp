@@ -181,22 +181,22 @@
 	    (range 1 total-tests))))
 
 
-(defun run-tests ()
+(defun run-tests (&optional (str nil))
   (let ((count 0)
 	(passed 0))
     (mapcar (lambda (test-case) 
 	      (if (not (member (1+ count) *ignores*))
-		  (progn ;; (format t "Running test on case ~a:~a ~%      Passed? ~a~% " 
-			 ;; 	 (1+ count) test-case (if (null (apply #'Prove test-case)) "NO!" (progn (incf passed) "Yes.")))
-		    (incf count) (not (null (apply #'Prove test-case))))
-		  (progn ;; (format t "Ignoring test on case ~a:~a ~%      " 
-			;	 (1+ count) test-case)
+		  (progn  (format str"Running test on case ~a:~a ~%      Passed? ~a~% " 
+					      (1+ count) test-case (if (null (apply #'Prove test-case)) "NO!" (progn (incf passed) "Yes.")))
+		    (incf count) (not (null (apply #'abstract-prove test-case))))
+		  (progn (format str "Ignoring test on case ~a:~a ~%      " 
+					      (1+ count) test-case)
 		    
 			 (incf count))))
 	    *prop-nd-tests*)
-  ;;  (format t "~% Total Passed ~a out of ~a." passed (- count (length *ignores*)))
-    ;;(format t "~% Ignored ~a" (length *ignores*))
-    ;(force-output t)
+   (format t "~% Total Passed ~a out of ~a." passed (- count (length *ignores*)))
+    (format t "~% Ignored ~a" (length *ignores*))
+    (force-output t)
     ))
 
 (run-tests)
