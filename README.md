@@ -1,4 +1,4 @@
-**G**
+#**G**
 
 **G** is a natural deduction style theorem prover in the style of Pollock's Oscar. 
 
