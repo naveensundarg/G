@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=640" />
+
+    <link rel="stylesheet" href="stylesheets/core.css" media="screen"/>
+    <link rel="stylesheet" href="stylesheets/mobile.css" media="handheld, only screen and (max-device-width:640px)"/>
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css"/>
+
+    <script type="text/javascript" src="javascripts/modernizr.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script type="text/javascript" src="javascripts/headsmart.min.js"></script>
+    <script type="text/javascript">
+      $(document).ready(function () {
+        $('#main_content').headsmart()
+      })
+    </script>
+    <title>G by naveensundarg</title>
+  </head>
+
+  <body>
+    <a id="forkme_banner" href="https://github.com/naveensundarg/G">View on GitHub</a>
+    <div class="shell">
+
+      <header>
+        <span class="ribbon-outer">
+          <span class="ribbon-inner">
+            <h1>G</h1>
+            <h2></h2>
+          </span>
+          <span class="left-tail"></span>
+          <span class="right-tail"></span>
+        </span>
+      </header>
+
+      <section id="downloads">
+        <span class="inner">
+          <a href="https://github.com/naveensundarg/G/zipball/master" class="zip"><em>download</em> .ZIP</a><a href="https://github.com/naveensundarg/G/tarball/master" class="tgz"><em>download</em> .TGZ</a>
+        </span>
+      </section>
+
+
+      <span class="banner-fix"></span>
+
+
+      <section id="main_content">
+        <h1>
+<a name="g" class="anchor" href="#g"><span class="octicon octicon-link"></span></a><strong>G</strong>
+</h1>
+
+<p><strong>G</strong> is a natural deduction style theorem prover in the style of Pollock's Oscar. </p>
+
+<p><strong>Rationale</strong>:</p>
+
+<blockquote>
+<p>A few years ago, Geoff Sutcliffe, one of the founders of the TPTP library (Thousands of problems for theorem provers) issued a challenge to OSCAR. At CADE-13, a competition was held for clausal-form theorem provers. Otter was one of the most successful contestants. In addition, Otter is able to handle problems stated in natural form (as opposed to clausal form), and Otter is readily available for different platforms. Sutcliffe selected 212 problems from the TPTP library, and suggested that OSCAR and Otter run these problems on the same hardware. This Shootout at the ATP corral took place, with the result that OSCAR was on the average 40 times faster than Otter. In addition, OSCAR was able to find proofs for 16 problems on which Otter failed, and Otter was able to find proofs for only 3 problems on which OSCAR failed. Taking into account that Otter was written in C and OSCAR in LISP, the speed difference of the algorithms themselves could be as much as an order of magnitude greater. (Pollock 2008) </p>
+
+<p>Pollock, John L. 2008. “OSCAR: An Architecture for Generally Intelligent Agents.” Frontiers in Artificial Intelligence and Applications 171:275–286.</p>
+</blockquote>
+
+<h2>
+<a name="to-get-started" class="anchor" href="#to-get-started"><span class="octicon octicon-link"></span></a>To get started</h2>
+
+<pre><code>(load "loader.lisp")
+</code></pre>
+
+<h2>
+<a name="run-all-the-tests" class="anchor" href="#run-all-the-tests"><span class="octicon octicon-link"></span></a>Run all the tests</h2>
+
+<pre><code>(run-all-tests nil)
+</code></pre>
+
+<h2>
+<a name="get-started-with-proving" class="anchor" href="#get-started-with-proving"><span class="octicon octicon-link"></span></a>Get started with proving</h2>
+
+<pre><code>(prove list-of-premises goal)
+(prove '() '(or p (not p)))
+</code></pre>
+
+<h2>
+<a name="status" class="anchor" href="#status"><span class="octicon octicon-link"></span></a>Status</h2>
+
+<p>Passes all propositional tests (save for one) in 
+   <a href="http://webloria.loria.fr/%7Eareces/cordoba08/Bib/75ATPproblems86.pdf">Seventy-Five Problems for Testing Automatic Theorem Provers </a></p>
+
+<h2>
+<a name="prerequisites" class="anchor" href="#prerequisites"><span class="octicon octicon-link"></span></a>Prerequisites</h2>
+
+<p>Quicklisp (to install cl-unification)</p>
+      </section>
+
+      <footer>
+        <span class="ribbon-outer">
+          <span class="ribbon-inner">
+            <p>this project by <a href="https://github.com/naveensundarg">naveensundarg</a> can be found on <a href="https://github.com/naveensundarg/G">GitHub</a></p>
+          </span>
+          <span class="left-tail"></span>
+          <span class="right-tail"></span>
+        </span>
+        <p>Generated with <a href="http://pages.github.com">GitHub Pages</a> using Merlot</p>
+        <span class="octocat"></span>
+      </footer>
+
+    </div>
+
+    
+  </body>
+</html>
