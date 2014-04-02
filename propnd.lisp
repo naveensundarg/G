@@ -4,7 +4,7 @@
 
 (defparameter *strageties* ())
 (defmacro define-strategy (name args &rest body)
-  (push name *strageties* )
+   `(push ,name *strageties* )
   `(defun ,name ,args ,@body))
 
 (defmacro trace-prover (&optional (strategy nil))
@@ -39,7 +39,7 @@
 		     (proof-step :cond-intro (list :discharges p) g))
 		    (Join 
 		     (subproof q (let ((*ae-expanded* *ae-expanded*)
-strate				       (*oe-expanded* *oe-expanded*)
+ 				       (*oe-expanded* *oe-expanded*)
 				       (*reductio-tried* *reductio-tried*)) (Prove-Int (cons q B) p))) 
 		     (proof-step :cond-intro (list :discharges q) g))))))
 
