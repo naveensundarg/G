@@ -28,8 +28,8 @@
    (complement #'null)
    (mapcar (lambda (x) 
 	     (first-sat (complement #'null)  
-			(mapcar (lambda (y) (if (or (equalp x (dual y))
-						    (equalp y (dual x)))
+			(mapcar (lambda (y) (if (or (equal x (dual y))
+						    (equal y (dual x)))
 						(list x y)
 						nil)) B))) B)))
 
@@ -37,7 +37,7 @@
 (defun subproof (added p) (if p (list :subproof :added added p) nil))
 
 ;;; Some simple helper functions.
-(defun can-reiterate? (B g) (member g B :test #'equalp))
+(defun can-reiterate? (B g) (member g B :test #'equal))
 (defun is-conditional? (g) (matches g '(implies ?x ?y)))
 (defun is-biconditional? (g) (matches g '(iff ?x ?y)))
 (defun is-conjunction? (g) (matches g '(and ?x ?y)))
@@ -53,13 +53,13 @@
 
 
 
-(defun mp-expanded? (f) (member f *mp-expanded* :test #'equalp))
+(defun mp-expanded? (f) (member f *mp-expanded* :test #'equal))
 
-(defun ae-expanded? (f) (member f *ae-expanded* :test #'equalp))
-(defun oe-expanded? (f) (member f *oe-expanded* :test #'equalp))
+(defun ae-expanded? (f) (member f *ae-expanded* :test #'equal))
+(defun oe-expanded? (f) (member f *oe-expanded* :test #'equal))
 
 (defun  tried-reductio? (g)
-  (or (member g *reductio-tried* :test #'equalp) (not (setf *reductio-tried* (cons g *reductio-tried*)))))
+  (or (member g *reductio-tried* :test #'equal) (not (setf *reductio-tried* (cons g *reductio-tried*)))))
 
 (defun add-to-mp-expanded (f) (setf *mp-expanded* (cons f *mp-expanded*)))
 
@@ -72,14 +72,14 @@
 (defun mp-foci? (f)
   (let ((antecedent (first f))
 	(conditional (second f)))
-    (and (is-conditional? conditional) (equalp antecedent (first (args conditional))))))
+    (and (is-conditional? conditional) (equal antecedent (first (args conditional))))))
 
 (defun MPWffs (B) (remove-if-not #'mp-foci? (all-pairs B)))
 
 (defun fresh-AEWffs (B) (set-difference (AEWffs B) *ae-expanded*))
 (defun fresh-OEWffs (B) (set-difference (OEWffs B) *oe-expanded*))
 
-(defun fresh-MPWffs (B) (set-difference (MPWffs B) *mp-expanded* :test #'equalp))
+(defun fresh-MPWffs (B) (set-difference (MPWffs B) *mp-expanded* :test #'equal))
 
 (defun and-elim (f) 
   (if (not (ae-expanded? f))
@@ -121,12 +121,12 @@
 
 (defun subformulae (f)
   (if (atom f) (list f)
-      (cons f (remove-duplicates (reduce #'append (mapcar #'subformulae-int (args f))) :test #'equalp))))
+      (cons f (remove-duplicates (reduce #'append (mapcar #'subformulae-int (args f))) :test #'equal))))
 
 (defun igoals-mp (B g)
   (remove-if-not (lambda (f)
 		   (and (is-conditional? f)
-			(member g (subformulae (second (args f))) :test #'equalp)
+			(member g (subformulae (second (args f))) :test #'equal)
 			))
 		  B))
 
@@ -169,7 +169,7 @@
 (defun compress (problem)
   (let ((premises (first problem))
 	(goal (second problem)))
-    (list (remove-duplicates premises :test #'equalp) goal)))
+    (list (remove-duplicates premises :test #'equal) goal)))
 
 (defun push-problem (p) (push p *problem-stack*))
 
@@ -178,8 +178,8 @@
 	(premises2 (premises P2))
 	(goal1 (goal P1))
 	(goal2 (goal P2)))
-    (and (equalp goal1 goal2)
-	 (equalp premises2 premises1))))
+    (and (equal goal1 goal2)
+	 (equal premises2 premises1))))
 
 (defun is-problem-in-stack? (p) (some (complement #'null)
 				      (mapcar (lambda (x)
@@ -197,7 +197,7 @@
 
 
 (defun count-deep (sub f)
-  (if (equalp sub f)
+  (if (equal sub f)
       1
       (if  (atom f)
 	   0
@@ -217,7 +217,7 @@
 	       (let ((biggest-repeating (biggest-repeating-subf f)))
 		 (if (and biggest-repeating (intersection (subformulae biggest-repeating)(subformulae f)))
 		     (let* ((sym (gensym))
-			    (curr (subst sym biggest-repeating f :test #'equalp)))
+			    (curr (subst sym biggest-repeating f :test #'equal)))
 		       (if (null (intersection (atoms biggest-repeating) (atoms curr)))
 			   (values (abstract curr) (list (list sym  biggest-repeating)))
 			   (values f nil))) 

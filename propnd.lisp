@@ -124,7 +124,7 @@
 		 (let ((*oe-expanded* *oe-expanded*)
 		       (*reductio-tried* *reductio-tried*))
 		   (Prove-int
-		    (remove-duplicates (cons (dual g) B) :test #'equalp)
+		    (remove-duplicates (cons (dual g) B) :test #'equal)
 		    (dual red-target))))) 
 	   B)
     (Join
@@ -139,7 +139,7 @@
 (complexity '(and (and a (if a b)) b))
 (define-strategy all-reductio! (B g)
   (let ((subs (reduce #'append (mapcar #'subformulae  (cons g B)))))
-    (if  (and  (not (member (dual  g) B :test #'equalp)))
+    (if  (and  (not (member (dual  g) B :test #'equal)))
 	(apply #'Any (mapcar (lambda (s) 
 			       (if  (and
 				     (not (tried-reductio?   g))) 
@@ -192,7 +192,7 @@
   (if *debug* 
       (progn
 	(let ((command (prompt-read (princ-to-string (list B :Goal g)))))
-	  (cond ((equalp command "n")
+	  (cond ((equal command "n")
 		 (progn (format t "[quitting]") (return-from Prove-Int nil)))
 		(t (format t "[>]") )))))
   (if (not (is-problem-in-stack? 

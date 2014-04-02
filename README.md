@@ -1,3 +1,4 @@
+
 #**G**
 
 **G** is a natural deduction style theorem prover in the style of Pollock's Oscar. 
@@ -14,7 +15,7 @@ __Rationale__:
   
 ## Run all the tests
 
-    (time (run-tests))
+    (run-all-tests nil)
   
 ## Get started with proving
 
@@ -24,3 +25,6 @@ __Rationale__:
 ## Status
    Passes all propositional tests (save for one) in 
    [Seventy-Five Problems for Testing Automatic Theorem Provers ](http://webloria.loria.fr/~areces/cordoba08/Bib/75ATPproblems86.pdf)
+
+## Prerequisites 
+   Quicklisp (to install cl-unification)
