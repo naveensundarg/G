@@ -195,6 +195,19 @@
    'r)
   "testing chaining with a theorem at the start.")
 
+
+(defparameter *prop-nd-true-test-40* 
+  (list () '(not (and p (not P))))
+  "Negation of a contradiction")
+
+(defparameter *prop-nd-true-test-41* 
+  (list (list '(not (or p (not p)))) 'z)
+  "Negation of a theorem leads to explosion")
+
+(defparameter *prop-nd-true-test-42* 
+  (list (list '(not (or p (not p)))) '(or p q))
+  "Negation of a theorem leads to explosion")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Soundness Tests ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defparameter *prop-nd-false-test-1*   
   (list 
@@ -206,8 +219,41 @@
    (list '(or p q))
    'p))
 
+(defparameter *prop-nd-false-test-3*   
+  (list 
+   (list '(and p q))
+   'r))
+
+(defparameter *prop-nd-false-test-4*   
+  (list 
+   (list '(implies p q))
+   'p))
+
+(defparameter *prop-nd-false-test-5*   
+  (list 
+   (list '(implies p q))
+   'q))
 
 
+(defparameter *prop-nd-false-test-6*   
+  (list 
+   (list '(implies p q))
+   '(not (or p (not q)))))
+
+
+(defparameter *prop-nd-false-test-7*   
+  (list 
+   (list '(implies p q) '(not (not (or p (not q)))))
+   '(not (or p (not q)))))
+
+(defparameter *prop-nd-false-test-8* 
+  (list () '(and p (not P))))
+
+(defparameter *prop-nd-false-test-9*
+ (list () '(not (not (and p (not P))))))
+
+(defparameter *prop-nd-false-test-10*
+ (list () '(implies p (not p))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun range (a b) (loop for i from a to b collect i))
@@ -218,7 +264,7 @@
 (defparameter *prop-nd-false-test-ignores* nil)
 
 (defparameter *prop-nd-true-tests* 
-  (let ((total-tests 39))
+  (let ((total-tests 42))
     (mapcar (lambda (n)
 	      (eval 
 	       (read-from-string 
@@ -230,7 +276,7 @@
 
 
 (defparameter *prop-nd-false-tests* 
-  (let ((total-tests 2))
+  (let ((total-tests 10))
     (mapcar (lambda (n)
 	      (eval 
 	       (read-from-string 
@@ -266,10 +312,10 @@
    (force-output t)))
 
 (defun run-all-tests (&optional (verbose nil))
-  (format t "~% --- RUNNING TESTS FOR COMPLETENESS --- ~% " )
+  (format t "~% --- RUNNING TESTS FOR COMPLETENESS --- ~%" )
   (force-output t)
   (time (run-tests :completeness verbose))
-  (format t "~% --- RUNNING TESTS FOR SOUNDESS  --- ~% " )
+  (format t "~% --- RUNNING TESTS FOR SOUNDESS  --- ~%" )
   (time (run-tests :soundness verbose))
   (force-output t))
 

@@ -120,9 +120,10 @@
   (multiple-value-bind 
 	(reductio-proof reductio-target)
       (try (lambda (red-target) 
-	     (if (not (tried-reductio? red-target))
-		 (let ( (*oe-expanded* *oe-expanded*)(*reductio-tried* *reductio-tried*))
-		   (Prove-Int 
+	     (if (not (tried-reductio? (list g red-target)))
+		 (let ((*oe-expanded* *oe-expanded*)
+		       (*reductio-tried* *reductio-tried*))
+		   (Prove-int
 		    (remove-duplicates (cons (dual g) B) :test #'equalp)
 		    (dual red-target))))) 
 	   B)
@@ -151,6 +152,7 @@
 						 (Prove-int (cons (dual g) B) (dual s)))))
 				    (proof-step :reductio g))))
 			     subs)))))
+
 
 
 ;;; Note: Here we have the linear style of natural deduction.
