@@ -24,7 +24,7 @@
 	(destructuring-bind 
 	      (conn p q) g  (declare (ignore conn))
 	      (Join 
-	       (subproof p  (Prove-Int (cons p B) q)) 
+	       (subproof p (Prove-Int (cons p B) q)) 
 		    (proof-step :cond-intro (list :discharges p) g)))))
 
 (define-strategy bicond-intro! (B g)
@@ -40,15 +40,18 @@
 		    (Join 
 		     (subproof q (let ((*ae-expanded* *ae-expanded*)
  				       (*oe-expanded* *oe-expanded*)
-				       (*reductio-tried* *reductio-tried*)) (Prove-Int (cons q B) p))) 
+				       (*reductio-tried* *reductio-tried*))
+				   (Prove-Int (cons q B) p))) 
 		     (proof-step :cond-intro (list :discharges q) g))))))
 
 (define-strategy and-intro! (B g)
    (if (is-conjunction? g) 
        (destructuring-bind 
 	     (conn p q) g  (declare (ignore conn))
-	     (Join (let ((*reductio-tried* *reductio-tried*)  (*oe-expanded* *oe-expanded*)) (Prove-int B p))
-		   (let ((*reductio-tried* *reductio-tried*) (*oe-expanded* *oe-expanded*)) (Prove-int B q )) 
+	     (Join (let ((*reductio-tried* *reductio-tried*) (*oe-expanded* *oe-expanded*)) 
+		     (Prove-int B p))
+		   (let ((*reductio-tried* *reductio-tried*) (*oe-expanded* *oe-expanded*)) 
+		     (Prove-int B q )) 
 		   (proof-step :&-intro (list p q) g)))))
 
 (define-strategy and-elim! (B g)
@@ -56,7 +59,7 @@
        (let* ((*ae-expanded* *ae-expanded*)
 	      (focus (first (fresh-AEWffs B)) )
 	      (new-B (append (and-elim focus) B)))
-	 (let ((remainder  (Prove-Int new-B g))) 
+	 (let ((remainder (Prove-Int new-B g))) 
 	   (if remainder
 	       (cons (proof-step :&-elim focus (and-elim focus))
 		    remainder))))))
@@ -64,9 +67,11 @@
 (define-strategy or-intro! (B g)
   (if (is-disjunction? g) 
        (destructuring-bind 
-	     (conn p q) g  (declare (ignore conn))
-	     (let ((remainder (or (let ((*oe-expanded* *oe-expanded*)(*reductio-tried* *reductio-tried*)) (Prove-int B p))
-				  (let ((*oe-expanded* *oe-expanded*)(*reductio-tried* *reductio-tried*)) (Prove-int B q)))))
+	     (conn p q) g (declare (ignore conn))
+	     (let ((remainder (or (let ((*oe-expanded* *oe-expanded*)(*reductio-tried* *reductio-tried*))
+				    (Prove-int B p))
+				  (let ((*oe-expanded* *oe-expanded*)(*reductio-tried* *reductio-tried*)) 
+				    (Prove-int B q)))))
 	       (if remainder
 		   (append remainder (list (proof-step :v-intro g))))))))
 
@@ -77,13 +82,9 @@
 	      (new-B-left  (cons (first  (or-elim focus)) B))
 	      (new-B-right (cons (second (or-elim focus)) B)))
 	 (let 
-	     ((remainder-1 (let ((*oe-expanded* *oe-expanded*)
-			;	 (*reductio-tried* *reductio-tried*)
-				 ) 
+	     ((remainder-1 (let ((*oe-expanded* *oe-expanded*)) 
 			     (Prove-int new-B-left g)))
-	      (remainder-2 (let ((*oe-expanded* *oe-expanded*)
-				;(*reductio-tried* *reductio-tried*)
-				 ) 
+	      (remainder-2 (let ((*oe-expanded* *oe-expanded*)) 
 			     (Prove-int new-B-right g))))
 	   (Join 
 	    (subproof (first (or-elim focus)) remainder-1) (subproof (second (or-elim focus)) remainder-2)
@@ -114,7 +115,7 @@
        (let  ((i-mp (first (igoals-mp B g))))
 	 (Join (Prove-int B (first (args i-mp)))
 	       (proof-step :cond-elim   (second (args i-mp)))))))
-;(not (member g B :test #'equalp)) 
+ 
 (define-strategy reductio! (B g)
   (multiple-value-bind 
 	(reductio-proof reductio-target)
@@ -184,13 +185,7 @@
 	   (log-step (concatenate 'string "branch failed on " (princ-to-string ,test))) ,else))))
 
 (defparameter *debug* nil)
-
-;; (defun Prove-int (B g)
-;;   (let ((snark-proved (snark-user::prove-with B g)))
-;;     (if snark-proved
-;; 	(if (prove-int-raw B g) t nil)
-;; 	(if (prove-int-raw B g)  (WARN   " Unsound on :Premises ~a :Goal ~a" B g) nil ))))
-
+ 
 (defun Prove-Int (B g)
   (if *debug* 
       (progn
@@ -218,8 +213,7 @@
 			 (or-elim! B g)
 			 (inter-cond-goals! B g)
 			 (reductio! B g)
-			 (all-reductio! B g)
-			 )))
+			 (all-reductio! B g))))
 	       (if ans (remove-problem-from-stack (make-problem B g)))
 	       ans))))
  
