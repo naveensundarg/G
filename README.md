@@ -15,7 +15,7 @@ __Rationale__:
   
 ## Run all the tests
 
-    (run-all-tests nil)
+    (run-all-tests)
   
 ## Get started with proving
 
@@ -27,4 +27,4 @@ __Rationale__:
    [Seventy-Five Problems for Testing Automatic Theorem Provers ](http://webloria.loria.fr/~areces/cordoba08/Bib/75ATPproblems86.pdf)
 
 ## Prerequisites 
-   Quicklisp (to install cl-unification)
+   Quicklisp (to install cl-unification).
