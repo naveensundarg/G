@@ -3,6 +3,7 @@
 (defparameter *ae-expanded* nil)
 (defparameter *oe-expanded* nil)
 (defparameter *mp-expanded* nil)
+(defparameter *bicon-elim-expanded* nil)
 (defparameter *reductio-tried* nil)
 
 
@@ -54,6 +55,7 @@
 
 
 (defun mp-expanded? (f) (member f *mp-expanded* :test #'equal))
+(defun bicon-elim-expanded? (f) (member f *bicon-elim-expanded* :test #'equal))
 
 (defun ae-expanded? (f) (member f *ae-expanded* :test #'equal))
 (defun oe-expanded? (f) (member f *oe-expanded* :test #'equal))
@@ -62,7 +64,7 @@
   (or (member g *reductio-tried* :test #'equal) (not (setf *reductio-tried* (cons g *reductio-tried*)))))
 
 (defun add-to-mp-expanded (f) (setf *mp-expanded* (cons f *mp-expanded*)))
-
+(defun add-to-bicon-elim-expanded (f) (setf *bicon-elim-expanded* (cons f *bicon-elim-expanded*)))
 (defun add-to-ae-expanded (f) (setf *ae-expanded* (cons f *ae-expanded*)))
 (defun add-to-oe-expanded (f) (setf *oe-expanded* (cons f *oe-expanded*)))
 
@@ -74,12 +76,33 @@
 	(conditional (second f)))
     (and (is-conditional? conditional) (equal antecedent (first (args conditional))))))
 
+
+
+
+(defun bicond-elim-foci? (f)
+  (let ((antecedent (first f))
+	(biconditional (second f)))
+    (and (is-biconditional? biconditional) 
+	   (or
+	    (equal antecedent (second (args biconditional)))
+	    (equal antecedent (first (args biconditional)))))))
+
+
+
 (defun MPWffs (B) (remove-if-not #'mp-foci? (all-pairs B)))
+(defun BiConElimWffs (B) (remove-if-not #'bicond-elim-foci? (all-pairs B)))
+
+
+
 
 (defun fresh-AEWffs (B) (set-difference (AEWffs B) *ae-expanded*))
 (defun fresh-OEWffs (B) (set-difference (OEWffs B) *oe-expanded*))
 
 (defun fresh-MPWffs (B) (set-difference (MPWffs B) *mp-expanded* :test #'equal))
+
+(defun fresh-bicon-elim-Wffs (B) (set-difference (BiConElimWffs B) *bicon-elim-expanded* :test #'equal))
+
+
 
 (defun and-elim (f) 
   (if (not (ae-expanded? f))
@@ -99,7 +122,12 @@
     (second (args conditional))))
 
 
-
+(defun  bicond-elim  (f) 
+  (let ((conditional (second f)))
+    (if (bicond-elim-foci?  f)
+	(add-to-bicon-elim-expanded  f))
+   ; (pprint (concatenate 'string "[ " (princ-to-string *mp-expanded*) " ]"))
+    (first (set-difference (args conditional) (list (first f)) :test #'equal))))
 
 ;;; 
 ;;; []
@@ -126,8 +154,14 @@
 (defun igoals-mp (B g)
   (remove-if-not (lambda (f)
 		   (and (is-conditional? f)
-			(member g (subformulae (second (args f))) :test #'equal)
-			))
+			(member g (subformulae (second (args f))) :test #'equal)))
+		  B))
+
+(defun igoals-bicond-elim (B g)
+  (remove-if-not (lambda (f)
+		   (and (is-biconditional? f)
+			(or (member g (subformulae (second (args f))) :test #'equal)
+			    (member g (subformulae (first (args f))) :test #'equal))))
 		  B))
 
 

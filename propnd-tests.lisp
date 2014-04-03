@@ -1,5 +1,6 @@
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Completeness Tests ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Completeness Tests ;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter *prop-nd-true-test-1*
     '((P) P))
@@ -208,7 +209,21 @@
   (list (list '(not (or p (not p)))) '(or p q))
   "Negation of a theorem leads to explosion")
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Soundness Tests ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter *prop-nd-true-test-43* 
+  (list NIL '(implies (implies (implies P Q) R) (implies P (implies Q R)))))
+
+(defparameter *prop-nd-true-test-44*
+  (list NIL '(iff (iff P Q) (iff Q P))))
+
+(defparameter *prop-nd-true-test-45*
+  (list (list '(iff p (and q r)) '(iff q (and a b))) '(implies p a))
+  "Biconditional chaining.")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Soundness Tests ;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defparameter *prop-nd-false-test-1*   
   (list 
    ()
@@ -254,6 +269,9 @@
 
 (defparameter *prop-nd-false-test-10*
  (list () '(implies p (not p))))
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun range (a b) (loop for i from a to b collect i))
@@ -264,7 +282,7 @@
 (defparameter *prop-nd-false-test-ignores* nil)
 
 (defparameter *prop-nd-true-tests* 
-  (let ((total-tests 42))
+  (let ((total-tests 44))
     (mapcar (lambda (n)
 	      (eval 
 	       (read-from-string 

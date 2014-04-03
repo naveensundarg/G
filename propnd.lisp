@@ -91,14 +91,25 @@
 	    (list (proof-step :v-elim  focus g)))))))
 
 (define-strategy cond-elim! (B g)
- (if (fresh-MPWffs B)
-       (let* ((foci (first (fresh-MPWffs B)))
-	      (new-B (cons (cond-elim foci) B)))
-	 (let ((remainder (Prove-Int new-B g) )) 
-	   (if remainder  
-	       (cons (proof-step :cond-elim (first foci) (second foci) )
-		     remainder))))))
+  (let* ((fresh (fresh-MPWffs B))
+	 (foci (first fresh))
+	 (new-B (cons (cond-elim foci) B)))
+    (if fresh
+	(let ((remainder (Prove-Int new-B g) )) 
+	  (if remainder  
+	      (cons (proof-step :cond-elim (first foci) (second foci) )
+		    remainder))))))
 
+
+(define-strategy bicond-elim! (B g)
+  (let* ((fresh (fresh-bicon-elim-Wffs B))
+	 (foci (first fresh))
+	 (new-B (cons (bicond-elim foci) B)))
+    (if fresh
+	(let ((remainder (Prove-Int new-B g))) 
+	  (if remainder  
+	      (cons (proof-step :bicond-elim (first foci) (second foci) )
+		    remainder))))))
 
 (define-strategy bicond-elim-left! (B g)
  (if (fresh-MPWffs B)
@@ -106,7 +117,7 @@
 	      (new-B (cons (cond-elim foci) B)))
 	 (let ((remainder (Prove-Int new-B g) )) 
 	   (if remainder  
-	       (cons (proof-step :cond-elim (first foci) (second foci) )
+	       (cons (proof-step :bicond-elim (first foci) (second foci) )
 		     remainder))))))
 
 
@@ -116,6 +127,13 @@
 	 (Join (Prove-int B (first (args i-mp)))
 	       (proof-step :cond-elim   (second (args i-mp)))))))
  
+
+(define-strategy inter-bicond-goals! (B g)
+   (if (first (igoals-bicond-elim B g))
+       (let  ((i-bicond  (first (igoals-bicond-elim B g))))
+	 (Join (Prove-int B (first (set-difference (args i-bicond) (list g) :test #'equal)))
+	       (proof-step :bicond-elim  g)))))
+
 (define-strategy reductio! (B g)
   (multiple-value-bind 
 	(reductio-proof reductio-target)
@@ -159,6 +177,7 @@
 	(*expanded* nil) 
 	(*reductio-tried* nil)
 	(*ae-expanded* nil)
+	(*bicon-elim-expanded* nil)
 	(*mp-expanded* nil)
 	(*oe-expanded* nil))
     ;(push-problem (make-problem B g))
@@ -191,9 +210,7 @@
 	  (cond ((equal command "n")
 		 (progn (format t "[quitting]") (return-from Prove-Int nil)))
 		(t (format t "[>]") )))))
-  (if (not (is-problem-in-stack? 
-	    (make-problem 
-	    B g)))
+  (if (not (is-problem-in-stack? (make-problem B g)))
       (progn (push-problem (make-problem B g))
 	     (let ((ans (or
 			 (reiterate! B g)
@@ -201,11 +218,13 @@
 			 (incons! B g)
 			 (and-elim! B g)
 			 (cond-elim! B g)
+			 (bicond-elim! B g)
  			 (bicond-intro! B g)
 			 (cond-intro! B g)
 			 (and-intro! B g)
 			 (or-elim! B g)
 			 (inter-cond-goals! B g)
+			 (inter-bicond-goals! B g)
 			 (reductio! B g)
 			 (all-reductio! B g))))
 	       (if ans (remove-problem-from-stack (make-problem B g)))
