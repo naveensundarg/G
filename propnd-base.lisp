@@ -213,18 +213,18 @@
 	(goal1 (goal P1))
 	(goal2 (goal P2)))
     (and (equal goal1 goal2)
-	 (equal premises2 premises1))))
+	 (subsetp premises2 premises1 :test #'equal))))
 
 (defun is-problem-in-stack? (p) (some (complement #'null)
 				      (mapcar (lambda (x)
-						(if (subsumes? x p) t nil))  
+						(if (equal x p) t nil))  
 					      *problem-stack* )))
 
 (defun clear-problem-stack () (setf *problem-stack* nil))
 
 (defun remove-problem-from-stack (p)
   (setf *problem-stack*  (remove nil (mapcar (lambda (x)
-					       (if (subsumes? x p) nil x))  
+					       (if (equal x p) nil x))  
 					     *problem-stack*))))
 (defun complexity (f)
   (if (atom f)
