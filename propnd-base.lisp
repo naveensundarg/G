@@ -192,6 +192,10 @@
   (setf *problem-stack*  (remove nil (mapcar (lambda (x)
 					       (if (subsumes? x p) nil x))  
 					     *problem-stack*))))
+(defun complexity (f)
+  (if (atom f)
+      1
+      (apply #'+ (mapcar #'complexity f))))
 
 
 

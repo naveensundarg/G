@@ -17,7 +17,10 @@
       (compile-file 
        (merge-pathnames 
         pathname (load-time-value *load-truename*)))
-    (load output-pathname)))
+    (declare (ignore warnings-p))
+    (if failure-p
+	(error "Could not compile ~a" pathname)
+	(load output-pathname))))
 
 
 (map nil 'compile-and-load *files*)

@@ -131,12 +131,8 @@
      (subproof  (dual g) reductio-proof)
      (proof-step :reductio reductio-target g))))
 
-(defun complexity (f)
-  (if (atom f)
-      1
-      (apply #'+ (mapcar #'complexity f))))
 
-(complexity '(and (and a (if a b)) b))
+
 (define-strategy all-reductio! (B g)
   (let ((subs (reduce #'append (mapcar #'subformulae  (cons g B)))))
     (if  (and  (not (member (dual  g) B :test #'equal)))
@@ -197,19 +193,15 @@
 		(t (format t "[>]") )))))
   (if (not (is-problem-in-stack? 
 	    (make-problem 
-	    B 
-	     g)))
+	    B g)))
       (progn (push-problem (make-problem B g))
 	     (let ((ans (or
 			 (reiterate! B g)
 			 (or-intro! B g)
-
 			 (incons! B g)
 			 (and-elim! B g)
 			 (cond-elim! B g)
-		;	 (bicond-elim! B g)
-
-			 (bicond-intro! B g)
+ 			 (bicond-intro! B g)
 			 (cond-intro! B g)
 			 (and-intro! B g)
 			 (or-elim! B g)
@@ -221,7 +213,7 @@
  
 
 
-(defun abstract-prove (premises goal &optional (inner nil))
+(defun abstract-prove (premises goal)
   (multiple-value-bind  (v f)  (abstract (cons :Whole (cons goal premises)))
     (subst (second (first f)) (first (first f)) (prove (rest (rest v)) (first (rest v))))))
 

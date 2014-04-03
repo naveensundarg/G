@@ -134,8 +134,8 @@
 (defparameter *prop-nd-true-test-30*
   (list ()
 	'(implies (and (and (or p q) (or (not p) q)) (or p (not q)))
-	  (not (or (not p) (not q))))
-	"Problem 9"))
+	  (not (or (not p) (not q)))))
+  "Problem 9")
 
 
 (defparameter *prop-nd-true-test-31* (list (list '(implies q r)
