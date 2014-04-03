@@ -312,7 +312,7 @@
 	(ignores-list (if (eq type :completeness) *prop-nd-true-test-ignores* *prop-nd-false-test-ignores*)))
     (mapcar (lambda (test-case) 
 	      (if (not (member (1+ count) ignores-list))
-		  (let ((result (apply #'abstract-prove test-case)))
+		  (let ((result (apply #'prove test-case)))
 		    (format str " Running test on case ~a:  Passed? ~a~%" 
 				  (1+ count)  
 				  (if (funcall failure-check result)

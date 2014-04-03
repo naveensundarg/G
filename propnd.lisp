@@ -172,7 +172,7 @@
 ;;; Note: Here we have the linear style of natural deduction.
 ;;; This differs from the graphical style of natural deduction show in 
 ;;; Slate and other systems. 
-(defun Prove (B g &optional (inner? nil))
+(defun simple-prove (B g &optional (inner? nil))
   (let ((*solved* nil)
 	(*seen* nil) 
 	(*expanded* nil) 
@@ -246,8 +246,8 @@
  
 
 
-(defun abstract-prove (premises goal)
+(defun prove (premises goal)
   (multiple-value-bind  (v f)  (abstract (cons :Whole (cons goal premises)))
-    (subst (second (first f)) (first (first f)) (prove (rest (rest v)) (first (rest v))))))
+    (subst (second (first f)) (first (first f)) (simple-prove (rest (rest v)) (first (rest v))))))
 
 ;(abstract-prove () '(or (and p q) (not (and p q))))
