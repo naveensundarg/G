@@ -255,14 +255,14 @@
   (if *interactive* 
       (let ((command (interactive-interface B g)))
 	(cond ((eql :n command)(return-from Prove-int))
-	      ((eql :p command)(return-from Prove-int :oracle))
+	      ((eql :p command)(return-from Prove-int (proof-step :oracle g)))
 	      ((eql :d command)(return-from Prove-int nil)))))
+  (incf *line-number*) 
   (let* ((problem (make-problem B g)) 
 	 (cached? (already-solved? problem)))
     (or cached?
 	(if (not (is-problem-in-stack? problem))
 	    (progn (push-problem problem)
-		   (incf *line-number*) 
 		   (incf *proof-depth*)
 		   (let ((ans 
 			  (multiple-value-bind
