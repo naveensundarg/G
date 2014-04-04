@@ -236,7 +236,7 @@
 
 (defun print-interactive-banner () 
   (format t (concatenate 'string (str* "-" 90) 
-			 "~%[C: CONTINUE; Q: GLOABL QUIT; N: LOCAL QUIT; P: ORACLE PROOF (YES); D: ORACLE PROOF (NO)]~%" (str* "-" 90) "~%")))
+			 "~%[c: CONTINUE; q: GLOABL QUIT; n: LOCAL QUIT; p: ORACLE PROOF (YES); d: ORACLE PROOF (NO)]~%" (str* "-" 90) "~%")))
 
 (defun interactive-interface (B g)
   (let ((command (prompt-read 
@@ -255,7 +255,7 @@
   (if *interactive* 
       (let ((command (interactive-interface B g)))
 	(cond ((eql :n command)(return-from Prove-int))
-	      ((eql :p command)(return-from Prove-int t))
+	      ((eql :p command)(return-from Prove-int :oracle))
 	      ((eql :d command)(return-from Prove-int nil)))))
   (let* ((problem (make-problem B g)) 
 	 (cached? (already-solved? problem)))
