@@ -1,20 +1,22 @@
 (declaim (ftype function first-sat prove-int))
 
 (defparameter *solved* ())
-(defparameter *debug* nil)
+(defparameter *interactive* nil)
 (defparameter *proof-depth* 0)
 (defparameter *line-number* 0)
 
 
 (defparameter *strageties* ())
+(defparameter *strategy-stack* ())
+
 (defmacro define-strategy (name args &rest body)
    `(push ,name *strageties* )
   `(defun ,name ,args ,@body))
 
 (defmacro trace-prover (&optional (strategy nil))
   `(if ,strategy
-      (trace ,strategy)
-      (progn ,@(mapcar (lambda (s) (list 'trace s)) *strageties*))))
+       (trace ,strategy)
+       (progn ,@(mapcar (lambda (s) (list 'trace s)) *strageties*))))
 
 (define-strategy incons! (B g)
   (if (inconsistent-pair B) 
@@ -192,7 +194,10 @@
 	       (*mp-expanded* nil)
 	       (*oe-expanded* nil)
 	       (*proof-depth* 0)
-	       (*line-number* 0))
+	       (*line-number* 0)
+	       (*strategy-stack* ()))
+	   (if *interactive*
+	       (print-interactive-banner))
 	   (let ((proof (Prove-Int (sort B (lambda (x y) (< (complexity x) (complexity y)))) g)))
 	     (clear-problem-stack) 
 	     (if (and proof (not inner?))
@@ -229,20 +234,29 @@
     str))
 
 
-(defun debug-interface (B g)
+(defun print-interactive-banner () 
+  (format t (concatenate 'string (str* "-" 90) 
+			 "~%[C: CONTINUE; Q: GLOABL QUIT; N: LOCAL QUIT; P: ORACLE PROOF (YES); D: ORACLE PROOF (NO)]~%" (str* "-" 90) "~%")))
+
+(defun interactive-interface (B g)
   (let ((command (prompt-read 
 		  (concatenate 'string 
 			       (princ-to-string *line-number*) 
 			       ":" (str* "[>]" *proof-depth*)
+			       "["(princ-to-string (first *strategy-stack*)) "]"
 			       (princ-to-string (list B :Goal g))))))
-    (cond ((equal command "n")
-	   (progn (format t "[quitting]")))
-	  ((equal command "q")
-	   (throw 'out nil)))))
+    (cond ((equal command "c") (setf *interactive* nil))
+	  ((equal command "n") :n)
+	  ((equal command "q") (throw 'out nil))
+	  ((equal command "p") :p)
+	  ((equal command "d") :d))))
 
 (defun Prove-Int (B g)
-  (if *debug* 
-      (debug-interface B g))
+  (if *interactive* 
+      (let ((command (interactive-interface B g)))
+	(cond ((eql :n command)(return-from Prove-int))
+	      ((eql :p command)(return-from Prove-int t))
+	      ((eql :d command)(return-from Prove-int nil)))))
   (let* ((problem (make-problem B g)) 
 	 (cached? (already-solved? problem)))
     (or cached?
@@ -254,7 +268,11 @@
 			  (multiple-value-bind
 				(prob_ proof)
 			      (first-sat 
-			       (lambda (strategy) (apply strategy (list B g)))
+			       (lambda (strategy) 
+				 (push strategy *strategy-stack*)
+				 (let ((this-ans (apply strategy (list B g))))
+				   (push strategy *strategy-stack*)
+				   this-ans))
 			       '(reiterate!
 				 or-intro! 
 				 incons! 
@@ -279,8 +297,8 @@
  
 
 
-(defun prove (premises goal &optional (debug nil))
-  (let ((*debug* debug))
+(defun prove (premises goal &optional (interactive nil))
+  (let ((*interactive* interactive))
       (multiple-value-bind  (v f)  (abstract (cons :Whole (cons goal premises)))
 	(subst (second (first f)) (first (first f)) (simple-prove (rest (rest v)) (first (rest v)))))))
 
