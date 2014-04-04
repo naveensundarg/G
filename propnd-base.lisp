@@ -170,9 +170,10 @@
    list which satisfies the predicate, else returns nil"
   (if list
       (let ((elem (first list)))
-	  (if (funcall pred elem)
-	      elem
-	      (first-sat pred (rest list))))))
+	(let ((curr (funcall pred elem)))
+	  (if curr
+	      (values elem curr)
+	      (first-sat pred (rest list)))))))
 
 
 (defun Join (&rest args)

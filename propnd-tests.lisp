@@ -220,6 +220,10 @@
   (list (list '(iff p (and q r)) '(iff q (and a b))) '(implies p a))
   "Biconditional chaining.")
 
+(defparameter *prop-nd-true-test-46*
+  (list ()  '(implies (iff (iff p q) r) (iff p (iff q r))))
+  "direction 1 of 33")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Soundness Tests ;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -282,7 +286,7 @@
 (defparameter *prop-nd-false-test-ignores* nil)
 
 (defparameter *prop-nd-true-tests* 
-  (let ((total-tests 44))
+  (let ((total-tests 43))
     (mapcar (lambda (n)
 	      (eval 
 	       (read-from-string 

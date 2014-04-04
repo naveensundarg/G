@@ -1,6 +1,10 @@
 (declaim (ftype function first-sat prove-int))
 
 (defparameter *solved* ())
+(defparameter *debug* nil)
+(defparameter *proof-depth* 0)
+(defparameter *line-number* 0)
+
 
 (defparameter *strageties* ())
 (defmacro define-strategy (name args &rest body)
@@ -105,7 +109,7 @@
   (let* ((fresh (fresh-bicon-elim-Wffs B))
 	 (foci (first fresh))
 	 (new-B (cons (bicond-elim foci) B)))
-    (if fresh
+    (if fresh 
 	(let ((remainder (Prove-Int new-B g))) 
 	  (if remainder  
 	      (cons (proof-step :bicond-elim (first foci) (second foci) )
@@ -131,8 +135,12 @@
 (define-strategy inter-bicond-goals! (B g)
    (if (first (igoals-bicond-elim B g))
        (let  ((i-bicond  (first (igoals-bicond-elim B g))))
-	 (Join (Prove-int B (first (set-difference (args i-bicond) (list g) :test #'equal)))
-	       (proof-step :bicond-elim  g)))))
+	 (or  (Join  
+		    (Prove-int B (first (set-difference (args i-bicond) (list g) :test #'equal)))
+		    (proof-step :bicond-elim  g))
+	      (Join 
+		    (Prove-int B (second (set-difference (args i-bicond) (list g) :test #'equal)))
+		    (proof-step :bicond-elim  g))))))
 
 (define-strategy reductio! (B g)
   (multiple-value-bind 
@@ -173,21 +181,24 @@
 ;;; This differs from the graphical style of natural deduction show in 
 ;;; Slate and other systems. 
 (defun simple-prove (B g &optional (inner? nil))
-  (let ((*solved* nil)
-	(*seen* nil) 
-	(*expanded* nil) 
-	(*reductio-tried* nil)
-	(*ae-expanded* nil)
-	(*bicon-elim-expanded* nil)
-	(*mp-expanded* nil)
-	(*oe-expanded* nil))
-    ;(push-problem (make-problem B g))
-    (let ((proof (Prove-Int B g)))
-     (clear-problem-stack) 
-      (if (and proof (not inner?))
-	  (list :Base B :Goal g
-		proof)
-	  proof))))
+  (catch 'out 
+    (unwind-protect 
+	 (let ((*solved* nil)
+	       (*seen* nil) 
+	       (*expanded* nil) 
+	       (*reductio-tried* nil)
+	       (*ae-expanded* nil)
+	       (*bicon-elim-expanded* nil)
+	       (*mp-expanded* nil)
+	       (*oe-expanded* nil)
+	       (*proof-depth* 0)
+	       (*line-number* 0))
+	   (let ((proof (Prove-Int (sort B (lambda (x y) (< (complexity x) (complexity y)))) g)))
+	     (clear-problem-stack) 
+	     (if (and proof (not inner?))
+		 (list :Base B :Goal g
+		       proof)
+		 proof))))))
 
 
 
@@ -202,7 +213,6 @@
 	 (progn 
 	   (log-step (concatenate 'string "branch failed on " (princ-to-string ,test))) ,else))))
 
-(defparameter *debug* nil)
  
 
 (defun already-solved? (problem)
@@ -212,42 +222,66 @@
 			   *solved*))))
 
 
-(subsumes?  (make-problem (list 'p ) 'p)  (make-problem (list 'p 'q) 'p))
+(defun str* (base n) 
+  (let ((str "")) 
+    (loop for i from 1 to n do 
+	 (setf str (concatenate 'string str base)))
+    str))
+
+
+(defun debug-interface (B g)
+  (let ((command (prompt-read 
+		  (concatenate 'string 
+			       (princ-to-string *line-number*) 
+			       ":" (str* "[>]" *proof-depth*)
+			       (princ-to-string (list B :Goal g))))))
+    (cond ((equal command "n")
+	   (progn (format t "[quitting]")))
+	  ((equal command "q")
+	   (throw 'out nil)))))
+
 (defun Prove-Int (B g)
   (if *debug* 
-      (progn
-	(let ((command (prompt-read (princ-to-string (list B :Goal g)))))
-	  (cond ((equal command "n")
-		 (progn (format t "[quitting]") (return-from Prove-Int nil)))
-		(t (format t "[>]") )))))
-  (let ((cached? (already-solved? (make-problem B g))))
+      (debug-interface B g))
+  (let* ((problem (make-problem B g)) 
+	 (cached? (already-solved? problem)))
     (or cached?
-     (if (not (is-problem-in-stack? (make-problem B g)))
-	 (progn (push-problem (make-problem B g))
-		(let ((ans (or
-			    (reiterate! B g)
-			    (or-intro! B g)
-			    (incons! B g)
-			    (and-elim! B g)
-			    (cond-elim! B g)
-			    (bicond-elim! B g)
-			    (bicond-intro! B g)
-			    (cond-intro! B g)
-			    (and-intro! B g)
-			    (or-elim! B g)
-			    (inter-cond-goals! B g)
-			    (inter-bicond-goals! B g)
-			    (reductio! B g)
-			    (all-reductio! B g))))
-		  (if ans (progn
-			    (push (list (make-problem B g) ans) *solved*)
-			    (remove-problem-from-stack (make-problem B g))))
-		  ans))))))
+	(if (not (is-problem-in-stack? problem))
+	    (progn (push-problem problem)
+		   (incf *line-number*) 
+		   (incf *proof-depth*)
+		   (let ((ans 
+			  (multiple-value-bind
+				(prob_ proof)
+			      (first-sat 
+			       (lambda (strategy) (apply strategy (list B g)))
+			       '(reiterate!
+				 or-intro! 
+				 incons! 
+				 and-elim!
+				 cond-elim!
+				 bicond-elim!
+				 bicond-intro!
+				 cond-intro!
+				 and-intro!
+				 or-elim!
+				 inter-cond-goals!
+				 inter-bicond-goals!
+				 reductio!
+				 all-reductio!))
+			    (declare (ignore prob_))
+			    proof)))
+		     (decf *proof-depth*)
+		     (if ans (progn
+			       (push (list (make-problem B g) ans) *solved*)
+			       (remove-problem-from-stack (make-problem B g))))
+		     ans))))))
  
 
 
-(defun prove (premises goal)
-  (multiple-value-bind  (v f)  (abstract (cons :Whole (cons goal premises)))
-    (subst (second (first f)) (first (first f)) (simple-prove (rest (rest v)) (first (rest v))))))
+(defun prove (premises goal &optional (debug nil))
+  (let ((*debug* debug))
+      (multiple-value-bind  (v f)  (abstract (cons :Whole (cons goal premises)))
+	(subst (second (first f)) (first (first f)) (simple-prove (rest (rest v)) (first (rest v)))))))
 
 ;(abstract-prove () '(or (and p q) (not (and p q))))
